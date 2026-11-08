@@ -36,7 +36,7 @@ object LocalClickerEngine {
         val hardCap = config.optInt("hardCap", 50)
         val initialCap = config.optInt("initialCap", 10)
         val totalCapBonus = state.progress.clickCapBonus +
-            ReferenceCompanyEngine.globalMultiplier(state, context, "clickCap").minus(1.0).roundToInt()
+            ReferenceCompanyEngine.bonusAmount(state, context, "clickCap").roundToInt()
         val maxLevel = min(
             hardCap,
             initialCap + totalCapBonus.coerceAtLeast(0)
