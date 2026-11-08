@@ -42,8 +42,7 @@ object LocalSimulationEngine {
         val seed = stableSeed(p.id + p.location)
         val demand = (p.demandMultiplier + wave(seed, at / 21_600_000.0) * 0.10).coerceIn(0.5, 1.5)
         val occupancy = (p.occupancyRate + wave(seed xor 0x6a09e667, at / 14_400_000.0) * 0.06).coerceIn(0.05, 1.0)
-        val conditionFactor = when { p.conditionPercent < 20 -> 0.60; p.conditionPercent < 40 -> 0.82; else -> (p.conditionPercent / 100.0).coerceIn(0.4, 1.0) }
-        val gross = p.baseRentPerSec * occupancy * demand * conditionFactor * p.calculateMultiplier()
+        val gross = p.baseRentPerSec * occupancy * demand * p.calculateMultiplier()
         val savings = p.upgrades.sumOf { max(0, it.level) * it.expenseReduction }.coerceIn(0.0, 0.6)
         val expenses = p.operatingExpensePerSec * (1.0 - savings)
         return LocalPropertyReport(gross, expenses, gross - expenses, occupancy, p.conditionPercent)
