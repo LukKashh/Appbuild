@@ -218,7 +218,9 @@ object ReferenceMarketTrading {
                 if (cash - reservedCash + 1e-9 < gross + fee) return reject(input, "Insufficient available funds")
                 cash -= gross + fee
             } else {
-                if (reservedCash + 1e-9 < neededReserve) return reject(input, "Reserved funds are unavailable")
+                if (order.reservedCash + 1e-9 < neededReserve || reservedCash + 1e-9 < neededReserve) {
+                    return reject(input, "Reserved funds are unavailable")
+                }
                 reservedCash = max(0.0, reservedCash - neededReserve)
                 cash -= gross + fee
             }
@@ -298,7 +300,7 @@ object ReferenceMarketTrading {
         var next = state
         if (order.side == LocalOrderSide.BUY && order.reservedCash > 0.0) {
             next = next.copy(reservedCash = max(0.0, next.reservedCash - order.reservedCash))
-        } else if (order.side == LocalOrderSide.SELL) {
+        } else if (order.side == LocalOrderSide.SELL && order.kind != LocalOrderKind.MARKET) {
             val holdings = if (order.market == "stock") next.stockHoldings else next.cryptoHoldings
             val current = holdings[order.symbol]
             if (current != null) {
