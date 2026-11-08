@@ -332,6 +332,9 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
     fun collectReferenceRent(instanceId: String? = null) =
         execute { ReferencePropertyEngine.collect(it, instanceId, System.currentTimeMillis()) }
 
+    fun collectMigratedRent(propertyId: String? = null) =
+        execute { LocalGameEngine.collectLegacyRent(it, propertyId, System.currentTimeMillis()) }
+
     fun sellReferenceProperty(instanceId: String) =
         execute { ReferencePropertyEngine.sell(it, getApplication(), instanceId, System.currentTimeMillis()) }
 
