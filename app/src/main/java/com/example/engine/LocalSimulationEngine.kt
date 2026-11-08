@@ -11,6 +11,11 @@ data class LocalPropertyReport(val grossRent: Double, val expenses: Double, val 
 
 /** Deterministic, device-only simulation. It never requires a network clock or remote function. */
 object LocalSimulationEngine {
+    private const val SUSPENDED_IDLE_EXPENSE_RATIO = 0.15
+    private const val STAKING_APY = 0.05
+    private const val STAKING_PERIOD_MS = 30_000L
+    private const val STAKING_PERIODS_PER_YEAR = 365.0 * 24.0 * 60.0 * 60.0 * 1000.0 / STAKING_PERIOD_MS
+
     fun xpRequired(level: Int): Double = if (level < 10) 250.0 + level * 175.0 else 1_825.0 * Math.pow(1.18, (level - 10).toDouble())
 
     fun addXp(progress: LocalPlayerProgress, amount: Double): LocalPlayerProgress {
@@ -27,6 +32,10 @@ object LocalSimulationEngine {
     }
 
     fun businessReport(b: Business, at: Long): LocalBusinessReport {
+        if (b.isSuspended) {
+            val idleExpenses = b.expensesPerSec * SUSPENDED_IDLE_EXPENSE_RATIO
+            return LocalBusinessReport(0.0, idleExpenses, -idleExpenses, "Suspended")
+        }
         val staff = if (b.minimumEmployees <= 0) 1.0 else (b.employeeCount.toDouble() / b.minimumEmployees).coerceIn(0.0, 1.0)
         val cycle = 1.0 + wave(stableSeed(b.id), at / 3_600_000.0) * if (b.industry == Industry.HOSPITALITY) 0.12 else 0.055
         val upgradeRevenue = b.upgrades.sumOf { max(0, it.level) * it.revenueBonusPerLevel }
@@ -142,10 +151,10 @@ object LocalSimulationEngine {
         }
         val elapsedDays = ((now / 86_400_000L) - (input.lastActiveTimestamp / 86_400_000L)).coerceAtLeast(0L)
         val dividends = stocks.sumOf { it.holdingsValue * it.dividendYieldPercent / 100.0 / 365.0 * elapsedDays }
-        val stakingPeriods = ((now / 30_000L) - (input.lastActiveTimestamp / 30_000L)).coerceAtLeast(0L)
+        val stakingPeriods = ((now / STAKING_PERIOD_MS) - (input.lastActiveTimestamp / STAKING_PERIOD_MS)).coerceAtLeast(0L)
             .let { if (offline) min(it, 24L * 60L * 2L) else it }
         val stakingYield = if (input.research.any { it.id == "res_11" && it.isUnlocked }) {
-            cryptos.sumOf { it.holdingsValue } * 0.005 * stakingPeriods
+            cryptos.sumOf { it.holdingsValue } * STAKING_APY / STAKING_PERIODS_PER_YEAR * stakingPeriods
         } else 0.0
         val progress = addXp(input.progression.copy(clickTokens = (input.progression.clickTokens + tokenRegen).coerceAtMost(150.0),
             tokenUpdatedAt = now, lifetimeEarned = input.progression.lifetimeEarned + max(0.0, businessSettlement + propertySettlement + dividends + stakingYield)),
