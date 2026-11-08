@@ -133,8 +133,8 @@ fun MainScreen(viewModel: GameViewModel = viewModel()) {
 
             Box(Modifier.weight(1f)) {
                 when {
-                    utilityScreen == "Profile" -> PlayerProfileScreen(state)
-                    utilityScreen == "Settings" -> SettingsOverviewScreen()
+                    utilityScreen == "Profile" -> PlayerProfileScreen(state, viewModel::updatePlayerProfile)
+                    utilityScreen == "Settings" -> SettingsOverviewScreen(state.preferences, viewModel::updateGamePreferences)
                     utilityScreen == "Achievements" -> AchievementsScreen(state, viewModel::claimAchievement)
                     utilityScreen == "Statistics" -> StatisticsScreen(state, viewModel::resetGame)
                     utilityScreen == null -> when (selectedTab) {
