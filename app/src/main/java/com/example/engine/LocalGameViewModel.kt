@@ -209,6 +209,42 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
     fun cancelReferenceMarketOrder(orderId: String) =
         execute { ReferenceMarketEngine.cancelOrder(it, orderId, System.currentTimeMillis()) }
 
+    fun buyCasinoChips(chips: Long) =
+        execute { ReferenceCasinoEngine.buyChips(it, chips, System.currentTimeMillis()) }
+
+    fun sellCasinoChips(chips: Long) =
+        execute { ReferenceCasinoEngine.sellChips(it, chips, System.currentTimeMillis()) }
+
+    fun playRoulette(bets: List<LocalRouletteBet>) =
+        execute { ReferenceCasinoEngine.roulette(it, bets, System.currentTimeMillis()) }
+
+    fun playKeno(bet: Double, picks: List<Int>) =
+        execute { ReferenceCasinoEngine.keno(it, bet, picks, System.currentTimeMillis()) }
+
+    fun startBlackjack(bet: Double) =
+        execute { ReferenceCasinoEngine.blackjackStart(it, bet, System.currentTimeMillis()) }
+
+    fun moveBlackjack(move: String) =
+        execute { ReferenceCasinoEngine.blackjackMove(it, move, System.currentTimeMillis()) }
+
+    fun startMines(bet: Double, mines: Int) =
+        execute { ReferenceCasinoEngine.minesStart(it, bet, mines, System.currentTimeMillis()) }
+
+    fun revealMine(tile: Int) =
+        execute { ReferenceCasinoEngine.minesReveal(it, tile, System.currentTimeMillis()) }
+
+    fun cashoutMines() =
+        execute { ReferenceCasinoEngine.minesCashout(it, System.currentTimeMillis()) }
+
+    fun startHiLo(bet: Double) =
+        execute { ReferenceCasinoEngine.hiloStart(it, bet, System.currentTimeMillis()) }
+
+    fun guessHiLo(higher: Boolean) =
+        execute { ReferenceCasinoEngine.hiloGuess(it, higher, System.currentTimeMillis()) }
+
+    fun cashoutHiLo() =
+        execute { ReferenceCasinoEngine.hiloCashout(it, System.currentTimeMillis()) }
+
     fun buyReferenceCollectible(itemId: String) =
         execute { ReferenceCollectibleEngine.buy(it, getApplication(), itemId, System.currentTimeMillis()) }
 
