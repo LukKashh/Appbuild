@@ -271,7 +271,8 @@ object ReferenceCasinoEngine {
         val active = state.casino.active ?: return reject(state, "No Hi-Lo round is active")
         if (active.game != "hilo") return reject(state, "Finish your current game first")
         val current = active.currentCard ?: return reject(state, "Current card unavailable")
-        val next = deck(active.seed).getOrNull(active.drawn) ?: return reject(state, "No cards remain")
+        val cards = deck(active.seed)
+        val next = cards[active.drawn % cards.size]
         val probability = if (higher) (14.0 - current.rank) / 13.0 else current.rank / 13.0
         val won = if (higher) next.rank >= current.rank else next.rank <= current.rank
         val history = active.history + next
