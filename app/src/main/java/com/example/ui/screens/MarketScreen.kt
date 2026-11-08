@@ -235,7 +235,12 @@ fun StockCard(stock: Stock, onTrade: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            ArchiveArtwork(
+                searchTerms = listOf(stock.symbol, stock.name, stock.sector),
+                modifier = Modifier.size(56.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -346,7 +351,12 @@ fun CryptoCard(crypto: Crypto, onTrade: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            ArchiveArtwork(
+                searchTerms = listOf(crypto.symbol, crypto.name, crypto.projectType),
+                modifier = Modifier.size(56.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
