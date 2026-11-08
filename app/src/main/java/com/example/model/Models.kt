@@ -92,7 +92,7 @@ data class Business(
     }
 
     val expensesPerSec: Double
-        get() = if (!isOwned || currentBranches == 0) 0.0 else operatingExpensePerSec + employeeCount * salaryPerEmployee
+        get() = if (!isOwned || currentBranches == 0) 0.0 else operatingExpensePerSec * (if (isSuspended) 0.15 else 1.0) + employeeCount * salaryPerEmployee * (if (isSuspended) 0.50 else 1.0)
 
     fun calculateExpenses(expenseReduction: Double = 1.0): Double {
         return if (!isOwned || currentBranches == 0) 0.0 else (employeeCount * salaryPerEmployee * expenseReduction)
