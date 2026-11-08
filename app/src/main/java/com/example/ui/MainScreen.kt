@@ -174,7 +174,7 @@ fun MainScreen(viewModel: GameViewModel = viewModel()) {
                                 onCollectAllRent = viewModel::collectAllPropertyRent,
                                 onSellProperty = viewModel::sellProperty
                             )
-                            EmpireSection.RESEARCH -> ResearchScreen(state, viewModel::unlockResearch)
+                            EmpireSection.RESEARCH -> ResearchScreen(state, viewModel::unlockResearch, viewModel::buildResearchLab, viewModel::upgradeResearchSlot)
                             EmpireSection.LUXURY -> CollectiblesScreen(state, viewModel::buyCollectible, viewModel::sellCollectible)
                             EmpireSection.CASINO -> CasinoScreen(state, viewModel::buyChips, viewModel::cashOutChips, viewModel::recordCasinoResult)
                             EmpireSection.ACHIEVEMENTS -> AchievementsScreen(state, viewModel::claimAchievement)
