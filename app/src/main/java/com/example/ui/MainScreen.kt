@@ -159,7 +159,7 @@ fun MainScreen(viewModel: LocalGameViewModel = viewModel()) {
                     utilityScreen == "Statistics" -> ReferenceStatisticsScreen(state, viewModel)
                     utilityScreen == null -> when (selectedTab) {
                         MainTab.ASSETS -> ReferenceAssetsScreen(state, viewModel)
-                        MainTab.MARKETS -> ReferenceMarketScreen(state, viewModel)
+                        MainTab.MARKETS -> ReferenceExchangeScreen(state, viewModel)
                         MainTab.TAP -> ReferenceTapScreen(state, viewModel)
                         MainTab.EMPIRE -> when (empireSection) {
                             EmpireSection.BUSINESS -> ReferenceEmpireScreen(state, viewModel, "Business")
