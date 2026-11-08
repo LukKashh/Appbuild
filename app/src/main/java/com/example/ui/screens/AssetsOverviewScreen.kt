@@ -21,7 +21,7 @@ import com.example.ui.theme.*
 @Composable
 fun AssetsOverviewScreen(state: GameState, modifier: Modifier = Modifier) {
     val businesses = state.businesses.filter { it.isOwned }.sumOf { it.valuation + it.accumulatedWallet }
-    val properties = state.properties.filter { it.isOwned }.sumOf { it.currentValuation + it.accumulatedRent }
+    val properties = state.properties.filter { it.isOwned }.sumOf { it.currentValuation + it.accumulatedRent - it.maintenanceDebt }
     val stocks = state.stocks.sumOf { it.holdingsValue }
     val crypto = state.cryptos.sumOf { it.holdingsValue }
     val collectibles = state.collectibles.filter { it.isOwned }.sumOf { it.currentValuation }
@@ -53,13 +53,15 @@ fun AssetsOverviewScreen(state: GameState, modifier: Modifier = Modifier) {
                 }
             }
         }
-        item { AssetLine("Cash & Bank", state.cash, Icons.Default.AccountBalanceWallet, EmeraldLight) }
+        item { AssetLine("Available Cash", state.cash, Icons.Default.AccountBalanceWallet, EmeraldLight) }
+        item { AssetLine("Reserved Trading Funds", state.reservedCash, Icons.Default.Lock, GoldPrimary) }
         item { AssetLine("Businesses", businesses, Icons.Default.Business, PurpleCrypto) }
         item { AssetLine("Real Estate", properties, Icons.Default.Apartment, GoldLight) }
         item { AssetLine("Stocks", stocks, Icons.Default.ShowChart, EmeraldProfit) }
         item { AssetLine("Crypto", crypto, Icons.Default.CurrencyBitcoin, PurpleCrypto) }
         item { AssetLine("Collectibles", collectibles, Icons.Default.Diamond, GoldLight) }
         item { AssetLine("Casino Chips", chips, Icons.Default.Casino, GoldPrimary) }
+        if (state.corporation.isFounded) item { AssetLine("Corporation Treasury (separate)", state.corporation.treasury, Icons.Default.Groups, PurpleCrypto) }
         item {
             Surface(color = DarkSurface, shape = RoundedCornerShape(16.dp), border = BorderStroke(1.dp, DarkCardBorder), modifier = Modifier.fillMaxWidth()) {
                 Column(Modifier.padding(16.dp)) {
@@ -68,6 +70,9 @@ fun AssetsOverviewScreen(state: GameState, modifier: Modifier = Modifier) {
                     Text("Businesses: ${state.businesses.count { it.isOwned }}   •   Properties: ${state.properties.count { it.isOwned }}", color = Color(0xFFD3C3E4))
                     Text("Stocks held: ${state.stocks.count { it.sharesOwned > 0 }}   •   Crypto assets: ${state.cryptos.count { it.coinsOwned > 0 }}", color = Color(0xFFD3C3E4))
                     Text("Collectibles: ${state.collectibles.count { it.isOwned }}", color = Color(0xFFD3C3E4))
+                    Text("Reserved cash: ${CurrencyFormatter.format(state.reservedCash)}", color = Color(0xFFD3C3E4))
+                    Text("Business liabilities: ${CurrencyFormatter.format(state.businesses.filter { it.isOwned }.sumOf { it.liabilities })}", color = Color(0xFFD3C3E4))
+                    Text("Property maintenance arrears: ${CurrencyFormatter.format(state.properties.filter { it.isOwned }.sumOf { it.maintenanceDebt })}", color = Color(0xFFD3C3E4))
                 }
             }
         }
