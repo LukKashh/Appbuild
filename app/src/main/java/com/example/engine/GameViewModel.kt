@@ -470,26 +470,22 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { current ->
             val item = current.collectibles.find { it.id == id } ?: return@update current
             if (item.isOwned || current.cash < item.purchasePrice) return@update current
-
-            val updated = current.collectibles.map {
-                if (it.id == id) it.copy(isOwned = true) else it
-            }
-            logTransaction(TransactionType.COLLECTIBLE, "Acquired ${item.name}", -item.purchasePrice)
-            current.copy(cash = current.cash - item.purchasePrice, collectibles = updated)
+            val holdHours = listOf(1L, 3L, 6L, 12L, 24L, 72L)[item.rarity.ordinal]
+            val now = System.currentTimeMillis()
+            val updated = current.collectibles.map { if (it.id == id) it.copy(isOwned = true, holdUntil = now + holdHours * 3600000L) else it }
+            val tx = createTransaction(TransactionType.COLLECTIBLE, "Acquired " + item.name, -item.purchasePrice)
+            current.copy(cash = current.cash - item.purchasePrice, collectibles = updated, transactions = (listOf(tx) + current.transactions).take(200))
         }
     }
 
     fun sellCollectible(id: String) {
         _state.update { current ->
             val item = current.collectibles.find { it.id == id } ?: return@update current
-            if (!item.isOwned) return@update current
-
-            val payout = item.currentValuation * 0.85
-            val updated = current.collectibles.map {
-                if (it.id == id) it.copy(isOwned = false) else it
-            }
-            logTransaction(TransactionType.COLLECTIBLE, "Sold ${item.name}", payout)
-            current.copy(cash = current.cash + payout, collectibles = updated)
+            if (!item.isOwned || System.currentTimeMillis() < item.holdUntil) return@update current
+            val payout = item.currentValuation * item.resalePercent.coerceIn(0.50, 0.95)
+            val updated = current.collectibles.map { if (it.id == id) it.copy(isOwned = false, holdUntil = 0L) else it }
+            val tx = createTransaction(TransactionType.COLLECTIBLE, "Sold " + item.name + " (resale " + (item.resalePercent * 100).toInt() + "%)", payout)
+            current.copy(cash = current.cash + payout, collectibles = updated, transactions = (listOf(tx) + current.transactions).take(200))
         }
     }
 
@@ -595,7 +591,11 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 totalWonChips = if (netChips > 0) stats.totalWonChips + netChips else stats.totalWonChips,
                 totalLostChips = if (netChips < 0) stats.totalLostChips + Math.abs(netChips) else stats.totalLostChips,
                 gamesPlayed = stats.gamesPlayed + 1,
-                biggestWinChips = if (chipsWon > stats.biggestWinChips) chipsWon else stats.biggestWinChips
+                biggestWinChips = if (chipsWon > stats.biggestWinChips) chipsWon else stats.biggestWinChips,
+                totalWageredChips = stats.totalWageredChips + chipsBet,
+                currentWinStreak = if (netChips > 0) stats.currentWinStreak + 1 else 0,
+                bestWinStreak = maxOf(stats.bestWinStreak, if (netChips > 0) stats.currentWinStreak + 1 else stats.currentWinStreak),
+                currentLossStreak = if (netChips < 0) stats.currentLossStreak + 1 else 0
             )
             current.copy(casinoChips = newChips, casinoStats = updatedStats)
         }
