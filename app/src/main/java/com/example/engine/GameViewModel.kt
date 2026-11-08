@@ -103,16 +103,21 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     fun onTapClicker() {
         _state.update { current ->
             val hasClickResearch = current.research.find { it.id == "res_2" }?.isUnlocked == true
+            val collectibleClickBonus = current.collectibles.filter { it.isOwned && it.bonusKey == "clickPct" }.sumOf { it.bonusValue }
+            val corporationClickBonus = (current.corporation.facilities["training"] ?: 0) * 0.01
+            val xpBonus = current.collectibles.filter { it.isOwned && it.bonusKey == "xpPct" }.sumOf { it.bonusValue }
+            val corporationXpBonus = (current.corporation.facilities["academy"] ?: 0) * 0.01
             var power = current.clickPower * current.clickMultiplier
             if (hasClickResearch) power *= 2.0
             if (current.collectibles.find { it.id == "col_1" }?.isOwned == true) power *= 1.05
+            power *= (1.0 + collectibleClickBonus + corporationClickBonus)
 
             val now = System.currentTimeMillis()
             val progress = LocalSimulationEngine.addXp(current.progression.copy(
                 totalClicks = current.progression.totalClicks + 1,
                 lifetimeEarned = current.progression.lifetimeEarned + power,
                 tokenUpdatedAt = now
-            ), 0.5)
+            ), 0.5 * (1.0 + xpBonus + corporationXpBonus))
             current.copy(cash = current.cash + power, progression = progress)
         }
     }
