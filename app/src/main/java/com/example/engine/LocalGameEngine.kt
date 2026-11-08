@@ -19,7 +19,12 @@ data class LocalPlayerProgress(
     val lifetimeRevenue: Double = 0.0,
     val lifetimeExpenses: Double = 0.0,
     val lifetimeTrades: Long = 0,
-    val lifetimeClicks: Long = 0
+    val lifetimeClicks: Long = 0,
+    val companiesBought: Int = 0,
+    val companiesSold: Int = 0,
+    val branchesOpened: Int = 0,
+    val upgradesPurchased: Int = 0,
+    val hires: Int = 0
 )
 
 data class LocalEmployeeRole(
