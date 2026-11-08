@@ -156,15 +156,15 @@ fun ClickerScreen(
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                     Column {
                         Text("PLAYER PROGRESSION", color = Color(0xFFBDA8D2), style = MaterialTheme.typography.labelSmall)
-                        Text("LEVEL \${state.progression.level}", color = GoldLight, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+                        Text("LEVEL ${state.progression.level}", color = GoldLight, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
                     }
                     Column(horizontalAlignment = Alignment.End) {
-                        Text("\${state.progression.totalClicks} TOTAL CLICKS", color = Color.White, fontWeight = FontWeight.Bold)
-                        Text("LIFETIME EARNED \${CurrencyFormatter.format(state.progression.lifetimeEarned)}", color = EmeraldLight, style = MaterialTheme.typography.labelSmall)
+                        Text("${state.progression.totalClicks} TOTAL CLICKS", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("LIFETIME EARNED ${CurrencyFormatter.format(state.progression.lifetimeEarned)}", color = EmeraldLight, style = MaterialTheme.typography.labelSmall)
                     }
                 }
                 LinearProgressIndicator(progress = { xpProgress }, modifier = Modifier.fillMaxWidth())
-                Text("\${CurrencyFormatter.format(state.progression.xp)} / \${CurrencyFormatter.format(xpRequired)} XP TO NEXT LEVEL", color = Color(0xFFC9B8D9), style = MaterialTheme.typography.labelSmall)
+                Text("${CurrencyFormatter.format(state.progression.xp)} / ${CurrencyFormatter.format(xpRequired)} XP TO NEXT LEVEL", color = Color(0xFFC9B8D9), style = MaterialTheme.typography.labelSmall)
             }
         }
         item {
