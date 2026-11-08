@@ -85,14 +85,12 @@ fun ClickerScreen(
                 )
                 Box(
                     Modifier.size(258.dp).clip(CircleShape)
-                        .background(Brush.radialGradient(listOf(Color(0xFFFFF6B0), GoldPrimary, Color(0xFFDB7900), GoldDark)))
-    
+                        .background(Brush.radialGradient(listOf(Color(0xFFFFF6B0), GoldPrimary, Color(0xFFDB7900), GoldDark))),
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
                         Modifier.size(218.dp).clip(CircleShape)
-                            .background(Brush.radialGradient(listOf(Color(0xFFFFEFA0), Color(0xFFFFB900), Color(0xFF8B3E00))))
-
+                            .background(Brush.radialGradient(listOf(Color(0xFFFFEFA0), Color(0xFFFFB900), Color(0xFF8B3E00)))),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
