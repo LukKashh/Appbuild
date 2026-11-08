@@ -25,16 +25,16 @@ data class LocalGameSaveEntity(
 @Dao
 interface LocalGameSaveDao {
     @Query("SELECT * FROM local_game_save WHERE saveId = :saveId LIMIT 1")
-    suspend fun find(saveId: String = "primary"): LocalGameSaveEntity?
+    suspend fun find(saveId: String): LocalGameSaveEntity?
 
     @Query("SELECT * FROM local_game_save WHERE saveId = :saveId LIMIT 1")
-    fun observe(saveId: String = "primary"): Flow<LocalGameSaveEntity?>
+    fun observe(saveId: String): Flow<LocalGameSaveEntity?>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(save: LocalGameSaveEntity)
 
     @Query("DELETE FROM local_game_save WHERE saveId = :saveId")
-    suspend fun delete(saveId: String = "primary")
+    suspend fun delete(saveId: String)
 }
 
 @Database(entities = [LocalGameSaveEntity::class], version = 1, exportSchema = false)
@@ -63,7 +63,7 @@ class LocalSimulationRepository(context: Context) {
         .adapter(LocalSimulationState::class.java)
 
     suspend fun load(): LocalSimulationState {
-        val json = dao.find()?.stateJson ?: return LocalSimulationState()
+        val json = dao.find("primary")?.stateJson ?: return LocalSimulationState()
         return runCatching { adapter.fromJson(json) }.getOrNull() ?: LocalSimulationState()
     }
 
@@ -71,6 +71,6 @@ class LocalSimulationRepository(context: Context) {
         dao.upsert(LocalGameSaveEntity(stateJson = adapter.toJson(state), updatedAt = System.currentTimeMillis()))
     }
 
-    fun observe(): Flow<LocalGameSaveEntity?> = dao.observe()
-    suspend fun clear() = dao.delete()
+    fun observe(): Flow<LocalGameSaveEntity?> = dao.observe("primary")
+    suspend fun clear() = dao.delete("primary")
 }
