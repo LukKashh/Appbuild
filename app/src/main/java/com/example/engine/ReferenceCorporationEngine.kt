@@ -414,12 +414,12 @@ object ReferenceCorporationEngine {
     private fun ensureObjectives(corpInput: LocalCorporation, now: Long): LocalCorporation {
         var corp = corpInput
         while (corp.objectives.size < objectiveSlots(corp)) {
-            corp = corp.copy(objectives = corp.objectives + generateObjective(corp, now))
+            corp = generateObjective(corp, now)
         }
         return corp
     }
 
-    private fun generateObjective(corpInput: LocalCorporation, now: Long): LocalCorporationObjective {
+    private fun generateObjective(corpInput: LocalCorporation, now: Long): LocalCorporation {
         val corp = corpInput
         val sequence = corp.objectiveSequence + 1
         val base = (now xor corp.id.hashCode().toLong() xor (sequence * 1_103_515_245L))
@@ -453,7 +453,7 @@ object ReferenceCorporationEngine {
         val memberCount = corp.members.size.coerceAtLeast(1)
         val minParticipants = min(memberCount, max(1, floor(corp.level / 2.0).toInt() + if (random.nextBoolean()) 1 else 0))
         val difficulty = 1.0 + random.nextDouble() * 2.0
-        return if (kind == "funds") {
+        val objective = if (kind == "funds") {
             LocalCorporationObjective(
                 id = "obj$sequence",
                 title = listOf("Capital Drive", "Treasury Boost", "Investment Round")[random.nextInt(3)],
@@ -478,6 +478,7 @@ object ReferenceCorporationEngine {
                 memberXpReward = 120.0 * difficulty * corp.level
             )
         }
+        return corp.copyObjectiveResult(objective, milestoneIndex = corp.milestoneIndex)
     }
 
     private fun LocalCorporation.copyObjectiveResult(
