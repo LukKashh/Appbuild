@@ -1,0 +1,6 @@
+{
+  "name": "Capital Fortune",
+  "description": "An incremental business and wealth-building tycoon simulator. Build your economic empire, manage businesses, real estate, stock and crypto markets, luxury collectibles, and R&D.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

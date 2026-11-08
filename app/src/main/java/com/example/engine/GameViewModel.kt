@@ -1,0 +1,774 @@
+package com.example.engine
+
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import com.example.data.GameRepository
+import com.example.model.*
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import java.util.UUID
+import kotlin.random.Random
+
+data class OfflineReport(
+    val elapsedSeconds: Long,
+    val businessEarned: Double,
+    val rentEarned: Double,
+    val totalEarned: Double
+)
+
+class GameViewModel(application: Application) : AndroidViewModel(application) {
+    private val repository = GameRepository(application)
+
+    private val _state = MutableStateFlow(repository.loadGameState())
+    val state: StateFlow<GameState> = _state.asStateFlow()
+
+    private val _offlineReport = MutableStateFlow<OfflineReport?>(null)
+    val offlineReport: StateFlow<OfflineReport?> = _offlineReport.asStateFlow()
+
+    private var tickCounter = 0L
+
+    init {
+        checkOfflineProgress()
+        startGameLoop()
+    }
+
+    private fun checkOfflineProgress() {
+        val lastTime = _state.value.lastActiveTimestamp
+        val now = System.currentTimeMillis()
+        val elapsedSec = (now - lastTime) / 1000
+
+        if (elapsedSec >= 20) {
+            val hasRemoteOps = _state.value.research.find { it.id == "res_4" }?.isUnlocked == true
+            val maxSec = if (hasRemoteOps) 12 * 3600L else 2 * 3600L
+            val effectiveSec = elapsedSec.coerceAtMost(maxSec)
+
+            var bizEarned = 0.0
+            val updatedBusinesses = _state.value.businesses.map { biz ->
+                if (biz.isOwned) {
+                    val earned = biz.netProfitPerSec * effectiveSec
+                    bizEarned += earned
+                    biz.copy(accumulatedWallet = biz.accumulatedWallet + earned)
+                } else biz
+            }
+
+            var rentEarned = 0.0
+            val updatedProperties = _state.value.properties.map { prop ->
+                if (prop.isOwned) {
+                    val earned = prop.rentPerSec * effectiveSec
+                    rentEarned += earned
+                    prop.copy(accumulatedRent = prop.accumulatedRent + earned)
+                } else prop
+            }
+
+            val total = bizEarned + rentEarned
+            _state.update { current ->
+                current.copy(
+                    businesses = updatedBusinesses,
+                    properties = updatedProperties,
+                    lastActiveTimestamp = now
+                )
+            }
+
+            if (total > 0) {
+                _offlineReport.value = OfflineReport(
+                    elapsedSeconds = effectiveSec,
+                    businessEarned = bizEarned,
+                    rentEarned = rentEarned,
+                    totalEarned = total
+                )
+                logTransaction(TransactionType.OFFLINE, "Offline earnings collected", total)
+            }
+        }
+    }
+
+    fun dismissOfflineReport() {
+        _offlineReport.value = null
+    }
+
+    private fun startGameLoop() {
+        viewModelScope.launch {
+            while (true) {
+                delay(1000L)
+                tickCounter++
+                onGameTick()
+            }
+        }
+    }
+
+    private val simulatedHeadlines = listOf(
+        "MARKETS: Federal Reserve signals accommodative liquidity framework.",
+        "APEX TECH: Breakpoint achieved in optical tensor processor yields.",
+        "BITFORTUNE: Network hash rate touches all-time peak amidst institutional accumulation.",
+        "NOVA ENERGY: 800MW offshore wind grid commissioned ahead of timeline.",
+        "VAULT FINANCIAL: Prime brokerage assets under management surge 24%.",
+        "TITAN HEAVY: Space-dock structural casting contract finalized.",
+        "REAL ESTATE: Prime commercial occupancy rates reach historic high.",
+        "ETHERWEALTH: Layer-2 zero-knowledge rollups surpass 5,000 TPS.",
+        "CAPITAL FORTUNE: Emerging conglomerate expands multi-sector holdings."
+    )
+    private val _newsTicker = MutableStateFlow(simulatedHeadlines.first())
+    val newsTicker: StateFlow<String> = _newsTicker.asStateFlow()
+
+    private fun onGameTick() {
+        _state.update { current ->
+            val hasManagement = current.research.find { it.id == "res_1" }?.isUnlocked == true
+            val hasAutomation = current.research.find { it.id == "res_3" }?.isUnlocked == true
+            val hasAppliedLabs = current.research.find { it.id == "res_5" }?.isUnlocked == true
+            val hasPropAnalytics = current.research.find { it.id == "res_6" }?.isUnlocked == true
+            val hasAlgoTrading = current.research.find { it.id == "res_7" }?.isUnlocked == true
+            val hasAI = current.research.find { it.id == "res_8" }?.isUnlocked == true
+            val hasElectricMobility = current.research.find { it.id == "res_9" }?.isUnlocked == true
+            val hasCorpLearning = current.research.find { it.id == "res_10" }?.isUnlocked == true
+            val hasQuantFinance = current.research.find { it.id == "res_11" }?.isUnlocked == true
+            val hasFusion = current.research.find { it.id == "res_12" }?.isUnlocked == true
+
+            // Global Multiplier from Fusion Energy (+75%) & Collectibles
+            var globalMult = 1.0
+            if (hasFusion) globalMult *= 1.75
+            if (current.collectibles.find { it.id == "col_6" }?.isOwned == true) globalMult *= 1.05
+            if (current.collectibles.find { it.id == "col_14" }?.isOwned == true) globalMult *= 1.25
+            if (current.collectibles.find { it.id == "col_15" }?.isOwned == true) globalMult *= 1.30
+
+            // 1. Process Business Income
+            var autoCollectedCash = 0.0
+            val expenseReduction = if (hasManagement) 0.80 else 1.0
+            val employeeEfficiency = if (hasCorpLearning) 0.20 else 0.10
+
+            val updatedBusinesses = current.businesses.map { biz ->
+                if (biz.isOwned) {
+                    var indBonus = 1.0
+                    if (hasAppliedLabs && biz.industry == Industry.TECH) indBonus *= 1.35
+                    if (hasElectricMobility && (biz.industry == Industry.TRANSPORT || biz.industry == Industry.ENERGY)) indBonus *= 1.60
+                    if (current.collectibles.find { it.id == "col_4" }?.isOwned == true && biz.industry == Industry.TRANSPORT) indBonus *= 1.03
+                    if (current.collectibles.find { it.id == "col_9" }?.isOwned == true) indBonus *= 1.08
+                    if (current.collectibles.find { it.id == "col_12" }?.isOwned == true) indBonus *= 1.15
+
+                    var profit = biz.calculateNetProfit(expenseReduction, employeeEfficiency, indBonus) * globalMult
+                    if (hasAI) profit *= 1.40
+                    if (hasAutomation) {
+                        autoCollectedCash += profit
+                        biz
+                    } else {
+                        biz.copy(accumulatedWallet = biz.accumulatedWallet + profit)
+                    }
+                } else biz
+            }
+
+            // 2. Process Properties Rent & Condition Decay
+            val decay = if (hasPropAnalytics) 0.02 else 0.05
+            val rentBonus = (if (hasPropAnalytics) 1.25 else 1.0) *
+                    (if (current.collectibles.find { it.id == "col_2" }?.isOwned == true) 1.01 else 1.0) *
+                    (if (current.collectibles.find { it.id == "col_8" }?.isOwned == true) 1.08 else 1.0)
+
+            val updatedProperties = current.properties.map { prop ->
+                if (prop.isOwned) {
+                    val rent = prop.rentPerSec * rentBonus * globalMult
+                    val newCondition = (prop.conditionPercent - decay).coerceAtLeast(10.0).toInt()
+                    // Property valuation appreciates slightly
+                    val newVal = prop.currentValuation * (1.0 + (0.00005 * (prop.conditionPercent / 100.0)))
+                    prop.copy(
+                        accumulatedRent = prop.accumulatedRent + rent,
+                        conditionPercent = newCondition,
+                        currentValuation = newVal
+                    )
+                } else prop
+            }
+
+            // 3. Stock Market Simulation (every 2 seconds)
+            val updatedStocks = if (tickCounter % 2 == 0L) {
+                current.stocks.map { stock ->
+                    val drift = (Random.nextDouble() - 0.485) * 0.02
+                    val newPrice = (stock.currentPrice * (1.0 + drift)).coerceIn(1.0, 50000.0)
+                    val history = (stock.priceHistory + newPrice).takeLast(25)
+                    stock.copy(previousPrice = stock.currentPrice, currentPrice = newPrice, priceHistory = history)
+                }
+            } else current.stocks
+
+            // 4. Crypto Market Simulation (high volatility)
+            val updatedCryptos = if (tickCounter % 2 == 0L) {
+                current.cryptos.map { crypto ->
+                    val sentimentShift = if (Random.nextInt(50) == 0) {
+                        MarketSentiment.values().random()
+                    } else crypto.sentiment
+
+                    val bias = when (sentimentShift) {
+                        MarketSentiment.BULLISH -> 0.004
+                        MarketSentiment.BEARISH -> -0.004
+                        MarketSentiment.VOLATILE -> 0.0
+                    }
+                    val swing = (Random.nextDouble() - 0.5) * crypto.volatility + bias
+                    val newPrice = (crypto.currentPrice * (1.0 + swing)).coerceIn(0.01, 500000.0)
+                    val history = (crypto.priceHistory + newPrice).takeLast(25)
+                    crypto.copy(
+                        previousPrice = crypto.currentPrice,
+                        currentPrice = newPrice,
+                        sentiment = sentimentShift,
+                        priceHistory = history
+                    )
+                }
+            } else current.cryptos
+
+            // 5. Stock Dividends & Crypto Staking (every 30 seconds)
+            var dividendPayout = 0.0
+            var stakingYield = 0.0
+            if (tickCounter % 30 == 0L) {
+                var divMult = (if (hasAlgoTrading) 1.50 else 1.0) * (if (current.collectibles.find { it.id == "col_10" }?.isOwned == true) 1.10 else 1.0)
+                updatedStocks.forEach { stock ->
+                    if (stock.sharesOwned > 0) {
+                        val div = (stock.holdingsValue * (stock.dividendYieldPercent / 100.0) / 12.0) * divMult
+                        dividendPayout += div
+                    }
+                }
+
+                if (hasQuantFinance) {
+                    val cryptoHoldingVal = updatedCryptos.sumOf { it.holdingsValue }
+                    if (cryptoHoldingVal > 0) {
+                        stakingYield = cryptoHoldingVal * 0.005 // 0.5% every 30s
+                    }
+                }
+
+                // Update news ticker headline every 30s
+                _newsTicker.value = simulatedHeadlines.random()
+            }
+
+            // 6. Net Worth History (every 10 seconds)
+            val updatedHistory = if (tickCounter % 10 == 0L) {
+                (current.netWorthHistory + current.totalNetWorth).takeLast(30)
+            } else current.netWorthHistory
+
+            var finalCash = current.cash + autoCollectedCash + dividendPayout + stakingYield
+
+            // Update achievements progress
+            val updatedAchievements = evaluateAchievements(current.copy(cash = finalCash))
+
+            val newState = current.copy(
+                cash = finalCash,
+                businesses = updatedBusinesses,
+                properties = updatedProperties,
+                stocks = updatedStocks,
+                cryptos = updatedCryptos,
+                achievements = updatedAchievements,
+                netWorthHistory = updatedHistory,
+                lastActiveTimestamp = System.currentTimeMillis()
+            )
+
+            // Auto-save periodically
+            if (tickCounter % 5 == 0L) {
+                repository.saveGameState(newState)
+            }
+
+            newState
+        }
+    }
+
+    // --- Tap / Clicker Action ---
+    fun onTapClicker() {
+        _state.update { current ->
+            val hasClickResearch = current.research.find { it.id == "res_2" }?.isUnlocked == true
+            var power = current.clickPower * current.clickMultiplier
+            if (hasClickResearch) power *= 2.0
+            if (current.collectibles.find { it.id == "col_1" }?.isOwned == true) power *= 1.05
+
+            current.copy(cash = current.cash + power)
+        }
+    }
+
+    fun buyClickUpgrade(upgradeId: String) {
+        _state.update { current ->
+            val upg = current.clickUpgrades.find { it.id == upgradeId } ?: return@update current
+            if (current.cash < upg.currentCost) return@update current
+
+            val newCash = current.cash - upg.currentCost
+            val updatedUpgrades = current.clickUpgrades.map {
+                if (it.id == upgradeId) it.copy(level = it.level + 1) else it
+            }
+            val newPower = 1.0 + updatedUpgrades.sumOf { it.level * it.powerBoost }
+
+            logTransaction(TransactionType.CLICKER, "Upgraded ${upg.name} (Lv. ${upg.level + 1})", -upg.currentCost)
+            current.copy(
+                cash = newCash,
+                clickUpgrades = updatedUpgrades,
+                clickPower = newPower
+            )
+        }
+    }
+
+    // --- Business Actions ---
+    fun buyBusiness(businessId: String) {
+        _state.update { current ->
+            val biz = current.businesses.find { it.id == businessId } ?: return@update current
+            if (current.cash < biz.baseCost || biz.isOwned) return@update current
+
+            val newCash = current.cash - biz.baseCost
+            val updated = current.businesses.map {
+                if (it.id == businessId) it.copy(isOwned = true, currentBranches = 1) else it
+            }
+            logTransaction(TransactionType.BUSINESS, "Acquired ${biz.name}", -biz.baseCost)
+            current.copy(cash = newCash, businesses = updated)
+        }
+    }
+
+    fun expandBranch(businessId: String) {
+        _state.update { current ->
+            val biz = current.businesses.find { it.id == businessId } ?: return@update current
+            if (!biz.isOwned || current.cash < biz.branchCost) return@update current
+
+            val cost = biz.branchCost
+            val updated = current.businesses.map {
+                if (it.id == businessId) it.copy(currentBranches = it.currentBranches + 1) else it
+            }
+            logTransaction(TransactionType.BUSINESS, "Opened branch of ${biz.name}", -cost)
+            current.copy(cash = current.cash - cost, businesses = updated)
+        }
+    }
+
+    fun hireEmployee(businessId: String) {
+        _state.update { current ->
+            val biz = current.businesses.find { it.id == businessId } ?: return@update current
+            val hasCorpLearning = current.research.find { it.id == "res_10" }?.isUnlocked == true
+            val cost = biz.calculateHireCost(if (hasCorpLearning) 0.50 else 1.0)
+            if (!biz.isOwned || current.cash < cost) return@update current
+
+            val updated = current.businesses.map {
+                if (it.id == businessId) it.copy(employeeCount = it.employeeCount + 1) else it
+            }
+            logTransaction(TransactionType.BUSINESS, "Hired employee for ${biz.name}", -cost)
+            current.copy(cash = current.cash - cost, businesses = updated)
+        }
+    }
+
+    fun fireEmployee(businessId: String) {
+        _state.update { current ->
+            val biz = current.businesses.find { it.id == businessId } ?: return@update current
+            if (!biz.isOwned || biz.employeeCount <= 0) return@update current
+
+            val updated = current.businesses.map {
+                if (it.id == businessId) it.copy(employeeCount = it.employeeCount - 1) else it
+            }
+            current.copy(businesses = updated)
+        }
+    }
+
+    fun buyBusinessUpgrade(businessId: String, upgradeId: String) {
+        _state.update { current ->
+            val biz = current.businesses.find { it.id == businessId } ?: return@update current
+            val upg = biz.upgrades.find { it.id == upgradeId } ?: return@update current
+            if (upg.isPurchased || current.cash < upg.cost) return@update current
+
+            val updatedUpgrades = biz.upgrades.map {
+                if (it.id == upgradeId) it.copy(isPurchased = true) else it
+            }
+            val updatedBiz = biz.copy(upgrades = updatedUpgrades)
+            val updatedList = current.businesses.map { if (it.id == businessId) updatedBiz else it }
+
+            logTransaction(TransactionType.BUSINESS, "Upgraded ${biz.name}: ${upg.name}", -upg.cost)
+            current.copy(cash = current.cash - upg.cost, businesses = updatedList)
+        }
+    }
+
+    fun collectBusinessWallet(businessId: String) {
+        _state.update { current ->
+            val biz = current.businesses.find { it.id == businessId } ?: return@update current
+            if (biz.accumulatedWallet <= 0) return@update current
+
+            val amount = biz.accumulatedWallet
+            val updated = current.businesses.map {
+                if (it.id == businessId) it.copy(accumulatedWallet = 0.0) else it
+            }
+            logTransaction(TransactionType.BUSINESS, "Collected profits from ${biz.name}", amount)
+            current.copy(cash = current.cash + amount, businesses = updated)
+        }
+    }
+
+    fun collectAllBusinessWallets() {
+        _state.update { current ->
+            val total = current.businesses.filter { it.isOwned }.sumOf { it.accumulatedWallet }
+            if (total <= 0) return@update current
+
+            val updated = current.businesses.map {
+                if (it.isOwned) it.copy(accumulatedWallet = 0.0) else it
+            }
+            logTransaction(TransactionType.BUSINESS, "Collected all enterprise profits", total)
+            current.copy(cash = current.cash + total, businesses = updated)
+        }
+    }
+
+    fun sellBusiness(businessId: String) {
+        _state.update { current ->
+            val biz = current.businesses.find { it.id == businessId } ?: return@update current
+            if (!biz.isOwned) return@update current
+
+            val payout = (biz.valuation * 0.75) + biz.accumulatedWallet
+            val updated = current.businesses.map {
+                if (it.id == businessId) {
+                    it.copy(
+                        isOwned = false,
+                        currentBranches = 0,
+                        employeeCount = 0,
+                        accumulatedWallet = 0.0,
+                        upgrades = it.upgrades.map { u -> u.copy(isPurchased = false) }
+                    )
+                } else it
+            }
+            logTransaction(TransactionType.BUSINESS, "Sold ${biz.name}", payout)
+            current.copy(cash = current.cash + payout, businesses = updated)
+        }
+    }
+
+    // --- Real Estate Actions ---
+    fun buyProperty(propertyId: String) {
+        _state.update { current ->
+            val prop = current.properties.find { it.id == propertyId } ?: return@update current
+            if (current.cash < prop.purchasePrice || prop.isOwned) return@update current
+
+            val updated = current.properties.map {
+                if (it.id == propertyId) it.copy(isOwned = true) else it
+            }
+            logTransaction(TransactionType.PROPERTY, "Purchased deed for ${prop.name}", -prop.purchasePrice)
+            current.copy(cash = current.cash - prop.purchasePrice, properties = updated)
+        }
+    }
+
+    fun renovateProperty(propertyId: String) {
+        _state.update { current ->
+            val prop = current.properties.find { it.id == propertyId } ?: return@update current
+            if (!prop.isOwned || current.cash < prop.renovationCost || prop.conditionPercent >= 100) return@update current
+
+            val cost = prop.renovationCost
+            val updated = current.properties.map {
+                if (it.id == propertyId) it.copy(conditionPercent = 100) else it
+            }
+            logTransaction(TransactionType.PROPERTY, "Renovated ${prop.name} to 100%", -cost)
+            current.copy(cash = current.cash - cost, properties = updated)
+        }
+    }
+
+    fun renovateAllProperties() {
+        _state.update { current ->
+            val owned = current.properties.filter { it.isOwned && it.conditionPercent < 100 }
+            if (owned.isEmpty()) return@update current
+            val totalCost = owned.sumOf { it.renovationCost }
+            if (current.cash < totalCost) return@update current
+
+            val updated = current.properties.map {
+                if (it.isOwned) it.copy(conditionPercent = 100) else it
+            }
+            logTransaction(TransactionType.PROPERTY, "Renovated ${owned.size} properties to 100%", -totalCost)
+            current.copy(cash = current.cash - totalCost, properties = updated)
+        }
+    }
+
+    fun buyPropertyUpgrade(propertyId: String, upgradeId: String) {
+        _state.update { current ->
+            val prop = current.properties.find { it.id == propertyId } ?: return@update current
+            val upg = prop.upgrades.find { it.id == upgradeId } ?: return@update current
+            if (upg.isPurchased || current.cash < upg.cost) return@update current
+
+            val updatedUpgrades = prop.upgrades.map {
+                if (it.id == upgradeId) it.copy(isPurchased = true) else it
+            }
+            val updatedProp = prop.copy(upgrades = updatedUpgrades)
+            val updatedList = current.properties.map { if (it.id == propertyId) updatedProp else it }
+
+            logTransaction(TransactionType.PROPERTY, "Upgraded ${prop.name}: ${upg.name}", -upg.cost)
+            current.copy(cash = current.cash - upg.cost, properties = updatedList)
+        }
+    }
+
+    fun collectPropertyRent(propertyId: String) {
+        _state.update { current ->
+            val prop = current.properties.find { it.id == propertyId } ?: return@update current
+            if (prop.accumulatedRent <= 0) return@update current
+
+            val amount = prop.accumulatedRent
+            val updated = current.properties.map {
+                if (it.id == propertyId) it.copy(accumulatedRent = 0.0) else it
+            }
+            logTransaction(TransactionType.PROPERTY, "Collected rent for ${prop.name}", amount)
+            current.copy(cash = current.cash + amount, properties = updated)
+        }
+    }
+
+    fun collectAllPropertyRent() {
+        _state.update { current ->
+            val total = current.properties.filter { it.isOwned }.sumOf { it.accumulatedRent }
+            if (total <= 0) return@update current
+
+            val updated = current.properties.map {
+                if (it.isOwned) it.copy(accumulatedRent = 0.0) else it
+            }
+            logTransaction(TransactionType.PROPERTY, "Collected all real estate rent", total)
+            current.copy(cash = current.cash + total, properties = updated)
+        }
+    }
+
+    fun sellProperty(propertyId: String) {
+        _state.update { current ->
+            val prop = current.properties.find { it.id == propertyId } ?: return@update current
+            if (!prop.isOwned) return@update current
+
+            val payout = (prop.currentValuation * 0.85) + prop.accumulatedRent
+            val updated = current.properties.map {
+                if (it.id == propertyId) {
+                    it.copy(
+                        isOwned = false,
+                        conditionPercent = 100,
+                        accumulatedRent = 0.0,
+                        upgrades = it.upgrades.map { u -> u.copy(isPurchased = false) }
+                    )
+                } else it
+            }
+            logTransaction(TransactionType.PROPERTY, "Sold ${prop.name}", payout)
+            current.copy(cash = current.cash + payout, properties = updated)
+        }
+    }
+
+    // --- Stock Market Actions ---
+    fun buyStock(symbol: String, shares: Long) {
+        if (shares <= 0) return
+        _state.update { current ->
+            val stock = current.stocks.find { it.symbol == symbol } ?: return@update current
+            val totalCost = stock.currentPrice * shares
+            if (current.cash < totalCost) return@update current
+
+            val updatedStocks = current.stocks.map {
+                if (it.symbol == symbol) {
+                    it.copy(
+                        sharesOwned = it.sharesOwned + shares,
+                        totalCostBasis = it.totalCostBasis + totalCost
+                    )
+                } else it
+            }
+            logTransaction(TransactionType.STOCKS, "Bought $shares shares of $symbol", -totalCost)
+            current.copy(cash = current.cash - totalCost, stocks = updatedStocks)
+        }
+    }
+
+    fun sellStock(symbol: String, shares: Long) {
+        if (shares <= 0) return
+        _state.update { current ->
+            val stock = current.stocks.find { it.symbol == symbol } ?: return@update current
+            if (stock.sharesOwned < shares) return@update current
+
+            val revenue = stock.currentPrice * shares
+            val portionOfCostBasis = (shares.toDouble() / stock.sharesOwned) * stock.totalCostBasis
+            val profit = revenue - portionOfCostBasis
+
+            val updatedStocks = current.stocks.map {
+                if (it.symbol == symbol) {
+                    val remainingShares = it.sharesOwned - shares
+                    val remainingCost = if (remainingShares > 0) it.totalCostBasis - portionOfCostBasis else 0.0
+                    it.copy(sharesOwned = remainingShares, totalCostBasis = remainingCost)
+                } else it
+            }
+            val desc = "Sold $shares shares of $symbol (P&L: ${if (profit >= 0) "+$" else "-$"}${Math.abs(profit).toInt()})"
+            logTransaction(TransactionType.STOCKS, desc, revenue)
+            current.copy(cash = current.cash + revenue, stocks = updatedStocks)
+        }
+    }
+
+    // --- Crypto Market Actions ---
+    fun buyCrypto(symbol: String, amountUsd: Double) {
+        if (amountUsd <= 0) return
+        _state.update { current ->
+            val crypto = current.cryptos.find { it.symbol == symbol } ?: return@update current
+            if (current.cash < amountUsd) return@update current
+
+            val coinsPurchased = amountUsd / crypto.currentPrice
+            val updatedCryptos = current.cryptos.map {
+                if (it.symbol == symbol) {
+                    it.copy(
+                        coinsOwned = it.coinsOwned + coinsPurchased,
+                        totalCostBasis = it.totalCostBasis + amountUsd
+                    )
+                } else it
+            }
+            logTransaction(TransactionType.CRYPTO, "Bought ${String.format("%.4f", coinsPurchased)} $symbol", -amountUsd)
+            current.copy(cash = current.cash - amountUsd, cryptos = updatedCryptos)
+        }
+    }
+
+    fun sellCrypto(symbol: String, percentOfHolding: Double) {
+        _state.update { current ->
+            val crypto = current.cryptos.find { it.symbol == symbol } ?: return@update current
+            if (crypto.coinsOwned <= 0.0) return@update current
+
+            val coinsToSell = crypto.coinsOwned * percentOfHolding.coerceIn(0.01, 1.0)
+            val revenue = coinsToSell * crypto.currentPrice
+            val portionOfBasis = (coinsToSell / crypto.coinsOwned) * crypto.totalCostBasis
+
+            val updatedCryptos = current.cryptos.map {
+                if (it.symbol == symbol) {
+                    val remainingCoins = crypto.coinsOwned - coinsToSell
+                    val remainingBasis = if (remainingCoins > 0.000001) crypto.totalCostBasis - portionOfBasis else 0.0
+                    it.copy(coinsOwned = remainingCoins, totalCostBasis = remainingBasis)
+                } else it
+            }
+            logTransaction(TransactionType.CRYPTO, "Sold ${String.format("%.4f", coinsToSell)} $symbol", revenue)
+            current.copy(cash = current.cash + revenue, cryptos = updatedCryptos)
+        }
+    }
+
+    // --- Collectibles Actions ---
+    fun buyCollectible(id: String) {
+        _state.update { current ->
+            val item = current.collectibles.find { it.id == id } ?: return@update current
+            if (item.isOwned || current.cash < item.purchasePrice) return@update current
+
+            val updated = current.collectibles.map {
+                if (it.id == id) it.copy(isOwned = true) else it
+            }
+            logTransaction(TransactionType.COLLECTIBLE, "Acquired ${item.name}", -item.purchasePrice)
+            current.copy(cash = current.cash - item.purchasePrice, collectibles = updated)
+        }
+    }
+
+    fun sellCollectible(id: String) {
+        _state.update { current ->
+            val item = current.collectibles.find { it.id == id } ?: return@update current
+            if (!item.isOwned) return@update current
+
+            val payout = item.currentValuation * 0.85
+            val updated = current.collectibles.map {
+                if (it.id == id) it.copy(isOwned = false) else it
+            }
+            logTransaction(TransactionType.COLLECTIBLE, "Sold ${item.name}", payout)
+            current.copy(cash = current.cash + payout, collectibles = updated)
+        }
+    }
+
+    // --- Research Actions ---
+    fun unlockResearch(id: String) {
+        _state.update { current ->
+            val node = current.research.find { it.id == id } ?: return@update current
+            if (node.isUnlocked || current.cash < node.cost) return@update current
+
+            // Check prerequisite
+            if (node.requiredResearchId != null) {
+                val prereq = current.research.find { it.id == node.requiredResearchId }
+                if (prereq == null || !prereq.isUnlocked) return@update current
+            }
+
+            val updated = current.research.map {
+                if (it.id == id) it.copy(isUnlocked = true) else it
+            }
+            logTransaction(TransactionType.RESEARCH, "Completed R&D: ${node.name}", -node.cost)
+            current.copy(cash = current.cash - node.cost, research = updated)
+        }
+    }
+
+    // --- Casino Chip Exchange & Games ---
+    fun buyChips(cashAmount: Double) {
+        _state.update { current ->
+            if (cashAmount <= 0 || current.cash < cashAmount) return@update current
+            val chipsToAdd = (cashAmount / 100.0).toLong()
+            val actualCashSpent = chipsToAdd * 100.0
+            logTransaction(TransactionType.CASINO, "Exchanged cash for $chipsToAdd chips", -actualCashSpent)
+            current.copy(
+                cash = current.cash - actualCashSpent,
+                casinoChips = current.casinoChips + chipsToAdd
+            )
+        }
+    }
+
+    fun cashOutChips(chips: Long) {
+        _state.update { current ->
+            if (chips <= 0 || current.casinoChips < chips) return@update current
+            val cashToAdd = chips * 100.0
+            logTransaction(TransactionType.CASINO, "Cashed out $chips chips", cashToAdd)
+            current.copy(
+                cash = current.cash + cashToAdd,
+                casinoChips = current.casinoChips - chips
+            )
+        }
+    }
+
+    fun recordCasinoResult(chipsWon: Long, chipsBet: Long) {
+        _state.update { current ->
+            val netChips = chipsWon - chipsBet
+            val newChips = (current.casinoChips + netChips).coerceAtLeast(0)
+            val stats = current.casinoStats
+            val updatedStats = stats.copy(
+                totalWonChips = if (netChips > 0) stats.totalWonChips + netChips else stats.totalWonChips,
+                totalLostChips = if (netChips < 0) stats.totalLostChips + Math.abs(netChips) else stats.totalLostChips,
+                gamesPlayed = stats.gamesPlayed + 1,
+                biggestWinChips = if (chipsWon > stats.biggestWinChips) chipsWon else stats.biggestWinChips
+            )
+            current.copy(casinoChips = newChips, casinoStats = updatedStats)
+        }
+    }
+
+    // --- Achievements Reward Claim ---
+    fun claimAchievement(id: String) {
+        _state.update { current ->
+            val ach = current.achievements.find { it.id == id } ?: return@update current
+            if (!ach.isUnlocked || ach.isClaimed) return@update current
+
+            val updated = current.achievements.map {
+                if (it.id == id) it.copy(isClaimed = true) else it
+            }
+            logTransaction(TransactionType.CLICKER, "Claimed reward for ${ach.title}", ach.rewardCash)
+            current.copy(cash = current.cash + ach.rewardCash, achievements = updated)
+        }
+    }
+
+    private fun evaluateAchievements(state: GameState): List<Achievement> {
+        val totalNetWorth = state.totalNetWorth
+        val ownedBizCount = state.businesses.count { it.isOwned }
+        val totalBranches = state.businesses.filter { it.isOwned }.sumOf { it.currentBranches }
+        val totalEmployees = state.businesses.filter { it.isOwned }.sumOf { it.employeeCount }
+        val ownedProperties = state.properties.count { it.isOwned }
+        val pristineProps = state.properties.count { it.isOwned && it.conditionPercent == 100 }
+        val stocksOwned = state.stocks.sumOf { it.sharesOwned }
+        val cryptoValue = state.cryptos.sumOf { it.holdingsValue }
+        val ownedCollectibles = state.collectibles.count { it.isOwned }
+        val highTierCollectibles = state.collectibles.count { it.isOwned && (it.rarity == Rarity.EPIC || it.rarity == Rarity.LEGENDARY || it.rarity == Rarity.MYTHICAL) }
+        val completedResearch = state.research.count { it.isUnlocked }
+
+        return state.achievements.map { ach ->
+            val currentProgress = when (ach.id) {
+                "ach_1", "ach_2", "ach_3", "ach_4", "ach_5", "ach_6", "ach_7" -> totalNetWorth
+                "ach_8" -> ownedBizCount.toDouble()
+                "ach_9" -> totalBranches.toDouble()
+                "ach_10" -> totalEmployees.toDouble()
+                "ach_11" -> state.businesses.filter { it.isOwned }.map { it.industry }.distinct().size.toDouble()
+                "ach_12" -> state.businesses.filter { it.isOwned }.sumOf { it.grossRevenuePerSec }
+                "ach_13", "ach_14" -> ownedProperties.toDouble()
+                "ach_15" -> pristineProps.toDouble()
+                "ach_16" -> if (state.properties.find { it.id == "prop_10" }?.isOwned == true) 1.0 else 0.0
+                "ach_17" -> stocksOwned.toDouble()
+                "ach_19" -> cryptoValue
+                "ach_21" -> ownedCollectibles.toDouble()
+                "ach_22" -> highTierCollectibles.toDouble()
+                "ach_23" -> state.casinoStats.gamesPlayed.toDouble()
+                "ach_24" -> state.casinoStats.biggestWinChips.toDouble()
+                "ach_25" -> completedResearch.toDouble()
+                else -> ach.currentProgress
+            }
+            val unlocked = currentProgress >= ach.targetProgress
+            ach.copy(currentProgress = currentProgress, isUnlocked = unlocked || ach.isUnlocked)
+        }
+    }
+
+    private fun logTransaction(type: TransactionType, desc: String, amount: Double) {
+        val tx = Transaction(
+            id = UUID.randomUUID().toString(),
+            timestamp = System.currentTimeMillis(),
+            type = type,
+            description = desc,
+            amount = amount
+        )
+        _state.update { current ->
+            current.copy(transactions = (listOf(tx) + current.transactions).take(50))
+        }
+    }
+
+    fun resetGame() {
+        _state.value = repository.resetGame()
+    }
+}
