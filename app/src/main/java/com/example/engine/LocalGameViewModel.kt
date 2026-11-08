@@ -53,8 +53,9 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
                     ReferenceCompanyEngine.tick(base, getApplication(), now, offline = true)
                 val (propertyAdvanced, propertySummary) =
                     ReferencePropertyEngine.tick(businessAdvanced, getApplication(), now, offline = true)
+                val researchAdvanced = ReferenceResearchEngine.completeDue(propertyAdvanced, getApplication(), now)
                 val (advanced, generalSummary) =
-                    LocalGameEngine.tick(propertyAdvanced, now, offline = true)
+                    LocalGameEngine.tick(researchAdvanced, now, offline = true)
                 val summary = LocalOfflineSummary(
                     elapsedMillis = maxOf(businessSummary.elapsedMillis, propertySummary.elapsedMillis, generalSummary.elapsedMillis),
                     lines = businessSummary.lines + propertySummary.lines + generalSummary.lines,
@@ -93,7 +94,8 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
                         ReferenceCompanyEngine.tick(_state.value, getApplication(), now, offline = false)
                     val (propertyAdvanced, _) =
                         ReferencePropertyEngine.tick(businessAdvanced, getApplication(), now, offline = false)
-                    val (advanced, _) = LocalGameEngine.tick(propertyAdvanced, now, offline = false)
+                    val researchAdvanced = ReferenceResearchEngine.completeDue(propertyAdvanced, getApplication(), now)
+                    val (advanced, _) = LocalGameEngine.tick(researchAdvanced, now, offline = false)
                     _state.value = advanced
                     ticksSinceSave++
                     if (ticksSinceSave >= 5) {
@@ -175,6 +177,15 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun startResearch(project: LocalResearchProject) =
         execute { LocalGameEngine.startResearch(it, project, System.currentTimeMillis()) }
+
+    fun buildResearchDepartment() =
+        execute { ReferenceResearchEngine.buildDepartment(it, getApplication(), System.currentTimeMillis()) }
+
+    fun purchaseResearchSlot() =
+        execute { ReferenceResearchEngine.addResearchSlot(it, getApplication(), System.currentTimeMillis()) }
+
+    fun startReferenceResearch(researchId: String) =
+        execute { ReferenceResearchEngine.start(it, getApplication(), researchId, System.currentTimeMillis()) }
 
     fun maintainProperty(propertyId: String) =
         execute { LocalGameEngine.maintainProperty(it, propertyId, System.currentTimeMillis()) }
