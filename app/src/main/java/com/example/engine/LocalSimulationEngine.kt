@@ -165,10 +165,12 @@ object LocalSimulationEngine {
             if (dividends > 0.0) add(Transaction(UUID.randomUUID().toString(), now, TransactionType.DIVIDEND, "Stock dividends credited", dividends))
             if (stakingYield > 0.0) add(Transaction(UUID.randomUUID().toString(), now, TransactionType.DIVIDEND, "Crypto staking yield credited", stakingYield))
         }
+        var passiveBalance = input.cash
         val passiveLedger = passiveTransactions.map { tx ->
+            passiveBalance += tx.amount
             LocalLedgerEntry(
                 id = tx.id, timestamp = tx.timestamp, category = "passive_income",
-                description = tx.description, credit = tx.amount, balanceAfter = input.cash + dividends + stakingYield
+                description = tx.description, credit = tx.amount, balanceAfter = passiveBalance
             )
         }
         var next = input.copy(

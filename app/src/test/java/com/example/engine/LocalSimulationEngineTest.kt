@@ -87,6 +87,54 @@ class LocalSimulationEngineTest {
     }
 
     @Test
+    fun passiveIncomeLedgerTracksTheBalanceAfterEachCredit() {
+        val stock = Stock(
+            symbol = "TEST",
+            name = "Dividend Holdings",
+            sector = "Test",
+            currentPrice = 100.0,
+            previousPrice = 100.0,
+            basePrice = 100.0,
+            volatility = 0.0,
+            sharesOwned = 10L,
+            dividendYieldPercent = 5.0
+        )
+        val crypto = Crypto(
+            symbol = "YIELD",
+            name = "Staking Token",
+            currentPrice = 100.0,
+            previousPrice = 100.0,
+            basePrice = 100.0,
+            coinsOwned = 100.0,
+            volatility = 0.0
+        )
+        val stakingResearch = ResearchNode(
+            id = "res_11",
+            name = "Crypto Staking",
+            category = "Finance",
+            cost = 0.0,
+            effectDescription = "Enable crypto staking.",
+            isUnlocked = true
+        )
+        val initial = GameState(
+            cash = 100.0,
+            stocks = listOf(stock),
+            cryptos = listOf(crypto),
+            research = listOf(stakingResearch),
+            lastActiveTimestamp = 0L,
+            lastFinancialSnapshotAt = 0L
+        )
+
+        val next = LocalSimulationEngine.advance(initial, 86_400_000L)
+        val dividend = next.ledger.first { it.description.contains("dividends", ignoreCase = true) }
+        val staking = next.ledger.first { it.description.contains("staking yield", ignoreCase = true) }
+
+        assertEquals(initial.cash + dividend.credit, dividend.balanceAfter, 1e-8)
+        assertEquals(dividend.balanceAfter + staking.credit, staking.balanceAfter, 1e-8)
+        assertEquals(next.cash, staking.balanceAfter, 1e-8)
+    }
+
+    @Test
     fun dividendsAreRecordedWhenAFullDayElapsed() {
         val now = 86_400_000L
         val stock = Stock(
