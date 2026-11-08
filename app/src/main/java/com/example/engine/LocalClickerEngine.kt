@@ -51,7 +51,43 @@ object LocalClickerEngine {
         var clickerLevel = state.progress.clickerLevel.coerceIn(1, hardCap)
         var clickerCount = state.clickerCount
         var earned = 0.0
-        val xp = available * config.optDouble("xpPerClick", 0.25)
+        var xp = 0.0
+        val clickMultiplier = ReferenceCompanyEngine.globalMultiplier(state, context, "clickPct")
+        val playerXpMultiplier = ReferenceCompanyEngine.globalMultiplier(state, context, "xpPct")
+        val sequenceSeed = ReferenceCompanyEngine.hashText(state.playerId) xor state.progress.lifetimeClicks.toInt()
+        repeat(available) { index ->
+            val level = clickerLevel.coerceIn(1, hardCap)
+            val t = (level - 1).toDouble() / (hardCap - 1).coerceAtLeast(1)
+            val clickValue = baseValue +
+                ((maxValue - baseValue) * (kotlin.math.exp(curve * t) - 1.0)) /
+                (kotlin.math.exp(curve) - 1.0)
+            // The click which completes a level is paid at the old level's value.
+            earned += min(maxValue, clickValue) * clickMultiplier
+
+            if (level >= hardCap) {
+                clickerCount = 0
+            } else {
+                clickerCount += 1
+                val requirement = if (level <= early.length()) {
+                    early.optInt(level - 1, 0)
+                } else {
+                    reqBase + reqStep * (level - 8)
+                }
+                if (clickerCount >= requirement) {
+                    if (clickerLevel < maxLevel) {
+                        clickerLevel += 1
+                        clickerCount = 0
+                    } else {
+                        clickerCount = requirement
+                    }
+                }
+            }
+
+            // The web reference rolls 0.25–1.00 XP for each click. Use a deterministic
+            // local sequence so a saved action can be replayed in regression tests.
+            val roll = ReferenceCompanyEngine.deterministicWave(sequenceSeed xor (index * 31), now / 1000.0)
+            xp += 0.25 + ((roll + 1.0) / 2.0) * 0.75
+        }
         val award = PlayerProgression.award(state.progress, xp * playerXpMultiplier)
         state = state.copy(
             cash = state.cash + earned + award.cashReward,
