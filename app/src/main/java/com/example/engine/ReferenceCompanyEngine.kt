@@ -612,6 +612,13 @@ object ReferenceCompanyEngine {
         return (1.0 + value(personal)) * (1.0 + value(corporate))
     }
 
+    fun tradingFeeRate(state: LocalSimulationState, context: Context, market: String): Double {
+        val (personal, corporate) = modifiers(state, context)
+        val base = if (market.equals("crypto", true)) 0.0025 else 0.005
+        return base * (1.0 - corporate.feeCut.coerceIn(0.0, 0.3)) *
+            (1.0 - personal.feeCut.coerceIn(0.0, 0.6))
+    }
+
     fun hashText(value: String): Int = hash(value)
     fun deterministicWave(seed: Int, time: Double): Double = wave(seed, time)
 
