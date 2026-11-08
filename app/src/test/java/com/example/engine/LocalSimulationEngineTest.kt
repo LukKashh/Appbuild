@@ -10,7 +10,13 @@ class LocalSimulationEngineTest {
     @Test
     fun suspendedBusinessesStopRevenueAndRetainOnlyIdleCosts() {
         val base = DefaultData.initialBusinesses().first()
-        val suspended = base.copy(isOwned = true, isSuspended = true)
+        val suspended = base.copy(
+            isOwned = true,
+            isSuspended = true,
+            currentBranches = 1,
+            employeeCount = 2,
+            operatingExpensePerSec = 100.0
+        )
 
         val report = LocalSimulationEngine.businessReport(suspended, 1_000_000L)
 
@@ -26,6 +32,9 @@ class LocalSimulationEngineTest {
         val suspended = DefaultData.initialBusinesses().first().copy(
             isOwned = true,
             isSuspended = true,
+            currentBranches = 1,
+            employeeCount = 2,
+            operatingExpensePerSec = 100.0,
             offlineCapHours = 0.0
         )
         val initial = GameState(
