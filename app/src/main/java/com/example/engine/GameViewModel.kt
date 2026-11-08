@@ -369,14 +369,16 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             val prop = current.properties.find { it.id == propertyId } ?: return@update current
             if (!prop.isOwned) return@update current
 
-            val payout = (prop.currentValuation * 0.85) + prop.accumulatedRent
+            val payout = ((prop.currentValuation - prop.maintenanceDebt) * 0.85 + prop.accumulatedRent).coerceAtLeast(0.0)
             val updated = current.properties.map {
                 if (it.id == propertyId) {
                     it.copy(
                         isOwned = false,
                         conditionPercent = 100,
+                        preciseCondition = 100.0,
                         accumulatedRent = 0.0,
-                        upgrades = it.upgrades.map { u -> u.copy(isPurchased = false) }
+                        maintenanceDebt = 0.0,
+                        upgrades = it.upgrades.map { u -> u.copy(isPurchased = false, level = 0) }
                     )
                 } else it
             }
@@ -390,7 +392,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         if (shares <= 0) return
         _state.update { current ->
             val stock = current.stocks.find { it.symbol == symbol } ?: return@update current
-            val totalCost = stock.currentPrice * shares
+            val grossCost = stock.currentPrice * shares
+            val fee = grossCost * 0.005
+            val totalCost = grossCost + fee
             if (current.cash < totalCost) return@update current
 
             val updatedStocks = current.stocks.map {
@@ -410,9 +414,11 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         if (shares <= 0) return
         _state.update { current ->
             val stock = current.stocks.find { it.symbol == symbol } ?: return@update current
-            if (stock.sharesOwned < shares) return@update current
+            if (stock.sharesOwned - stock.reservedShares < shares) return@update current
 
-            val revenue = stock.currentPrice * shares
+            val grossRevenue = stock.currentPrice * shares
+            val fee = grossRevenue * 0.005
+            val revenue = grossRevenue - fee
             val portionOfCostBasis = (shares.toDouble() / stock.sharesOwned) * stock.totalCostBasis
             val profit = revenue - portionOfCostBasis
 
@@ -434,29 +440,33 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         if (amountUsd <= 0) return
         _state.update { current ->
             val crypto = current.cryptos.find { it.symbol == symbol } ?: return@update current
-            if (current.cash < amountUsd) return@update current
+            val fee = amountUsd * 0.0025
+            val totalCost = amountUsd + fee
+            if (current.cash < totalCost) return@update current
 
             val coinsPurchased = amountUsd / crypto.currentPrice
             val updatedCryptos = current.cryptos.map {
                 if (it.symbol == symbol) {
                     it.copy(
                         coinsOwned = it.coinsOwned + coinsPurchased,
-                        totalCostBasis = it.totalCostBasis + amountUsd
+                        totalCostBasis = it.totalCostBasis + totalCost
                     )
                 } else it
             }
-            logTransaction(TransactionType.CRYPTO, "Bought ${String.format("%.4f", coinsPurchased)} $symbol", -amountUsd)
-            current.copy(cash = current.cash - amountUsd, cryptos = updatedCryptos)
+            logTransaction(TransactionType.CRYPTO, "Bought ${String.format("%.4f", coinsPurchased)} $symbol (incl. 0.25% fee)", -totalCost)
+            current.copy(cash = current.cash - totalCost, cryptos = updatedCryptos)
         }
     }
 
     fun sellCrypto(symbol: String, percentOfHolding: Double) {
         _state.update { current ->
             val crypto = current.cryptos.find { it.symbol == symbol } ?: return@update current
-            if (crypto.coinsOwned <= 0.0) return@update current
+            val availableCoins = (crypto.coinsOwned - crypto.reservedCoins).coerceAtLeast(0.0)
+            if (availableCoins <= 0.0) return@update current
 
-            val coinsToSell = crypto.coinsOwned * percentOfHolding.coerceIn(0.01, 1.0)
-            val revenue = coinsToSell * crypto.currentPrice
+            val coinsToSell = availableCoins * percentOfHolding.coerceIn(0.01, 1.0)
+            val grossRevenue = coinsToSell * crypto.currentPrice
+            val revenue = grossRevenue - grossRevenue * 0.0025
             val portionOfBasis = (coinsToSell / crypto.coinsOwned) * crypto.totalCostBasis
 
             val updatedCryptos = current.cryptos.map {
