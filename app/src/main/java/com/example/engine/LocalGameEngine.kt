@@ -207,6 +207,8 @@ data class LocalSimulationState(
     val cryptoHoldings: Map<String, LocalHolding> = emptyMap(),
     val marketOrders: List<LocalMarketOrder> = emptyList(),
     val researchProjects: List<LocalResearchProject> = emptyList(),
+    val researchBuilt: Boolean = false,
+    val researchSlots: Int = 1,
     val completedResearch: Set<String> = emptySet(),
     val collectibles: List<LocalCollectibleHolding> = emptyList(),
     val corporation: LocalCorporation? = null,
@@ -317,7 +319,7 @@ object LocalGameEngine {
         val progress = state.progress.copy(
             lifetimeRevenue = state.progress.lifetimeRevenue + lines.sumOf { it.gross },
             lifetimeExpenses = state.progress.lifetimeExpenses + lines.sumOf { it.expenses },
-            xp = state.progress.xp + (max(0.0, totalNet) / 100.0).toLong()
+            xp = state.progress.xp
         )
         val next = state.copy(companies = companies, properties = properties, progress = withLevel(progress),
             lastSimulationAt = now)
