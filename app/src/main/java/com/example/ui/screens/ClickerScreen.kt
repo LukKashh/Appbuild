@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -32,13 +33,6 @@ import com.example.ui.theme.*
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-data class TapParticle(
-    val id: Long,
-    val text: String,
-    val xOffset: Float,
-    val yOffset: Float
-)
-
 @Composable
 fun ClickerScreen(
     state: GameState,
@@ -47,325 +41,182 @@ fun ClickerScreen(
     onBuyUpgrade: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val coroutineScope = rememberCoroutineScope()
+    val scope = rememberCoroutineScope()
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
-    var isPressed by remember { mutableStateOf(false) }
-    val particles = remember { mutableStateListOf<TapParticle>() }
-
+    var pressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1.0f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow),
-        label = "click_scale"
+        targetValue = if (pressed) 0.94f else 1f,
+        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        label = "coin_scale"
     )
-
-    val currentTapEarnings = state.clickPower * state.clickMultiplier * (if (state.research.find { it.id == "res_2" }?.isUnlocked == true) 2.0 else 1.0)
+    val earnings = state.clickPower * state.clickMultiplier *
+        (if (state.research.any { it.id == "res_2" && it.isUnlocked }) 2.0 else 1.0)
+    val autoIncome = state.netCashFlowPerSec
 
     LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .padding(horizontal = 16.dp),
-        contentPadding = PaddingValues(top = 16.dp, bottom = 80.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp),
+        modifier = modifier.fillMaxSize().padding(horizontal = 14.dp),
+        contentPadding = PaddingValues(top = 14.dp, bottom = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(13.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Live News Ticker Wire
-        if (newsTicker.isNotEmpty()) {
+        if (newsTicker.isNotBlank()) {
             item {
                 Surface(
                     color = DarkSurfaceVariant,
-                    shape = RoundedCornerShape(8.dp),
-                    border = BorderStroke(1.dp, GoldPrimary.copy(alpha = 0.3f)),
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, GoldDark.copy(alpha = 0.75f)),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Surface(
-                            color = CrimsonLoss,
-                            shape = RoundedCornerShape(4.dp)
-                        ) {
-                            Text(
-                                text = "WIRE",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.ExtraBold,
-                                color = Color.White,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                            )
+                    Row(Modifier.padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Surface(color = CrimsonLoss, shape = RoundedCornerShape(5.dp)) {
+                            Text("WIRE", color = Color.White, fontWeight = FontWeight.Black, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp))
                         }
-                        Text(
-                            text = newsTicker,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White,
-                            maxLines = 1
-                        )
+                        Spacer(Modifier.width(9.dp))
+                        Text(newsTicker, color = Color.White, maxLines = 1, style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
         }
 
-        // Hero Clicker Area
         item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(240.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                // Floating particles
-                particles.forEach { particle ->
-                    key(particle.id) {
-                        FloatingText(particle.text, particle.xOffset, particle.yOffset)
-                    }
-                }
-
-                // Golden Vault Button
+            Box(Modifier.fillMaxWidth().height(360.dp), contentAlignment = Alignment.Center) {
                 Box(
-                    modifier = Modifier
-                        .size(190.dp)
-                        .scale(scale)
-                        .clip(CircleShape)
-                        .background(
-                            Brush.radialGradient(
-                                colors = listOf(GoldLight, GoldPrimary, GoldDark, DarkSurface)
-                            )
-                        )
-                        .clickable(
-                            interactionSource = remember { MutableInteractionSource() },
-                            indication = null
-                        ) {
-                            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
-                            onTap()
-                            coroutineScope.launch {
-                                isPressed = true
-                                val id = System.currentTimeMillis() + (0..1000).random()
-                                val x = (-50..50).random().toFloat()
-                                val y = (-30..30).random().toFloat()
-                                particles.add(TapParticle(id, "+${CurrencyFormatter.format(currentTapEarnings)}", x, y))
-                                delay(90)
-                                isPressed = false
-                                delay(700)
-                                particles.removeAll { it.id == id }
-                            }
-                        }
-                        .testTag("tap_generator_button"),
+                    Modifier.size(330.dp).clip(CircleShape)
+                        .background(Brush.radialGradient(listOf(PurpleCrypto.copy(alpha = 0.34f), Color.Transparent)))
+                )
+                Box(
+                    Modifier.size(258.dp).clip(CircleShape)
+                        .background(Brush.radialGradient(listOf(Color(0xFFFFF6B0), GoldPrimary, Color(0xFFDB7900), GoldDark)))
+                        .borderNeonGold(),
                     contentAlignment = Alignment.Center
                 ) {
-                    // Inner ring
                     Box(
-                        modifier = Modifier
-                            .size(150.dp)
-                            .clip(CircleShape)
-                            .background(
-                                Brush.verticalGradient(
-                                    colors = listOf(Color(0xFF2E2405), Color(0xFF130F02))
-                                )
-                            ),
+                        Modifier.size(218.dp).clip(CircleShape)
+                            .background(Brush.radialGradient(listOf(Color(0xFFFFEFA0), Color(0xFFFFB900), Color(0xFF8B3E00))))
+                            .borderNeonGold(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = Icons.Default.MonetizationOn,
-                                contentDescription = "Tap to Earn Cash",
-                                tint = GoldPrimary,
-                                modifier = Modifier.size(54.dp)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "TAP TO EARN",
-                                style = MaterialTheme.typography.labelSmall,
-                                fontWeight = FontWeight.Bold,
-                                color = GoldLight,
-                                letterSpacing = 1.2.sp
-                            )
-                        }
-                    }
-                }
-            }
-        }
-
-        // Tap Stats Card
-        item {
-            TycoonCard(modifier = Modifier.fillMaxWidth()) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "EARNINGS PER TAP",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = CurrencyFormatter.format(currentTapEarnings),
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = GoldLight,
-                            modifier = Modifier.testTag("cash_per_tap_text")
+                        Icon(
+                            Icons.Default.AttachMoney,
+                            contentDescription = "Tap to earn",
+                            tint = Color(0xFFFFF6D2),
+                            modifier = Modifier.size(142.dp)
                         )
                     }
-
                     Box(
-                        modifier = Modifier
-                            .width(1.dp)
-                            .height(40.dp)
-                            .background(DarkCardBorder)
+                        Modifier.size(272.dp).scale(scale)
+                            .clip(CircleShape)
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                onTap()
+                                scope.launch {
+                                    pressed = true
+                                    delay(110)
+                                    pressed = false
+                                }
+                            }
+                            .testTag("tap_generator_button")
                     )
-
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "TAP MULTIPLIER",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "${state.clickMultiplier}x",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = EmeraldLight
-                        )
-                    }
                 }
             }
         }
 
-        // Click Upgrades Section Header
         item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Upgrade,
-                    contentDescription = null,
-                    tint = GoldPrimary
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("+${CurrencyFormatter.format(earnings)}", color = EmeraldProfit, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
+                    Text("per tap", color = Color(0xFFDCCBEF), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 5.dp))
+                }
+                Spacer(Modifier.height(10.dp))
+                LinearProgressIndicator(
+                    progress = { (state.clickLevel % 10) / 10f },
+                    modifier = Modifier.fillMaxWidth(0.88f).height(9.dp).clip(RoundedCornerShape(20.dp)),
+                    color = PurpleCrypto,
+                    trackColor = Color(0xFF29133C)
                 )
-                Text(
-                    text = "TAP UPGRADES & EFFICIENCY",
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 1.sp,
-                    color = Color.White
-                )
+                Text("LEVEL ${state.clickLevel} • TAP UPGRADES", color = Color(0xFFD7C3F0), style = MaterialTheme.typography.labelLarge, letterSpacing = 1.1.sp, modifier = Modifier.padding(top = 7.dp))
             }
         }
 
-        // Click Upgrades List
-        items(state.clickUpgrades, key = { it.id }) { upg ->
-            ClickUpgradeItem(
-                upgrade = upg,
-                playerCash = state.cash,
-                onBuy = { onBuyUpgrade(upg.id) }
-            )
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TapMetric("Earnings / Tap", CurrencyFormatter.format(earnings), Icons.Default.Paid, Modifier.weight(1f), GoldLight)
+                TapMetric("Multiplier", "${String.format("%.2f", state.clickMultiplier)}x", Icons.Default.Bolt, Modifier.weight(1f), PurpleCrypto)
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TapMetric("Passive Income", "${CurrencyFormatter.format(autoIncome)}/s", Icons.Default.Layers, Modifier.weight(1f), EmeraldLight)
+                TapMetric("Net Worth", CurrencyFormatter.format(state.totalNetWorth), Icons.Default.TrendingUp, Modifier.weight(1f), GoldLight)
+            }
+        }
+
+        item {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Upgrade, null, tint = GoldPrimary)
+                Spacer(Modifier.width(8.dp))
+                Text("TAP UPGRADES & EFFICIENCY", color = Color.White, fontWeight = FontWeight.ExtraBold, letterSpacing = 0.7.sp)
+            }
+        }
+        items(state.clickUpgrades, key = { it.id }) { upgrade ->
+            ClickUpgradeItem(upgrade, state.cash) { onBuyUpgrade(upgrade.id) }
         }
     }
 }
 
 @Composable
-fun ClickUpgradeItem(
-    upgrade: ClickUpgrade,
-    playerCash: Double,
-    onBuy: () -> Unit
-) {
-    val canAfford = playerCash >= upgrade.currentCost
+private fun TapMetric(title: String, value: String, icon: androidx.compose.ui.graphics.vector.ImageVector, modifier: Modifier, tint: Color) {
+    Surface(
+        modifier = modifier,
+        color = Color(0xFF170827),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, PurpleCrypto.copy(alpha = 0.75f)
+    ) {
+        Column(Modifier.padding(horizontal = 9.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(icon, null, tint = tint, modifier = Modifier.size(24.dp))
+            Spacer(Modifier.height(5.dp))
+            Text(title, color = Color(0xFFD6C7E7), style = MaterialTheme.typography.labelSmall, maxLines = 1)
+            Text(value, color = tint, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+        }
+    }
+}
 
+private fun Modifier.borderNeonGold(): Modifier = this.then(
+    Modifier.background(Brush.linearGradient(listOf(Color.Transparent, Color.Transparent)))
+)
+
+@Composable
+fun ClickUpgradeItem(upgrade: ClickUpgrade, playerCash: Double, onBuy: () -> Unit) {
+    val canAfford = playerCash >= upgrade.currentCost
     TycoonCard(
         modifier = Modifier.fillMaxWidth(),
-        borderColor = if (canAfford) GoldPrimary.copy(alpha = 0.3f) else DarkCardBorder
+        borderColor = if (canAfford) GoldPrimary.copy(alpha = 0.7f) else DarkCardBorder
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    Text(
-                        text = upgrade.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = Color.White
-                    )
-                    Surface(
-                        color = DarkSurfaceVariant,
-                        shape = RoundedCornerShape(4.dp)
-                    ) {
-                        Text(
-                            text = "Lv. ${upgrade.level}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = GoldPrimary,
-                            fontWeight = FontWeight.SemiBold,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                        )
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    Text(upgrade.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.White)
+                    Surface(color = PurpleContainer, shape = RoundedCornerShape(6.dp)) {
+                        Text("Lv. ${upgrade.level}", color = GoldLight, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp))
                     }
                 }
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = upgrade.description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Text(upgrade.description, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
+            Spacer(Modifier.width(10.dp))
             Button(
                 onClick = onBuy,
                 enabled = canAfford,
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = GoldPrimary,
-                    contentColor = Color.Black,
-                    disabledContainerColor = DarkSurfaceVariant,
-                    disabledContentColor = Color.Gray
-                ),
+                colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = Color.Black, disabledContainerColor = DarkSurfaceVariant),
                 shape = RoundedCornerShape(10.dp),
                 modifier = Modifier.testTag("buy_upgrade_${upgrade.id}")
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "UPGRADE",
-                        style = MaterialTheme.typography.labelSmall,
-                        fontWeight = FontWeight.ExtraBold
-                    )
-                    Text(
-                        text = CurrencyFormatter.format(upgrade.currentCost),
-                        style = MaterialTheme.typography.labelMedium,
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text("UPGRADE", fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.labelSmall)
+                    Text(CurrencyFormatter.format(upgrade.currentCost), fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
                 }
             }
         }
     }
-}
-
-@Composable
-fun FloatingText(text: String, xOffset: Float, yOffset: Float) {
-    val transition = rememberInfiniteTransition(label = "particle")
-    val alpha by transition.animateFloat(
-        initialValue = 1f,
-        targetValue = 0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(800, easing = LinearEasing),
-            repeatMode = RepeatMode.Restart
-        ),
-        label = "alpha"
-    )
-
-    Text(
-        text = text,
-        color = GoldPrimary,
-        style = MaterialTheme.typography.titleMedium,
-        fontWeight = FontWeight.ExtraBold,
-        modifier = Modifier
-            .offset(x = xOffset.dp, y = (yOffset - 40).dp)
-    )
 }
