@@ -1,38 +1,54 @@
 package com.example.data
 
 import android.content.Context
-import android.content.SharedPreferences
+import androidx.room.Room
 import com.example.model.*
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
+/** Local persistence only. Room stores the full deterministic player snapshot on-device. */
 class GameRepository(context: Context) {
-    private val prefs: SharedPreferences =
-        context.getSharedPreferences("capital_fortune_save", Context.MODE_PRIVATE)
-
-    private val moshi: Moshi = Moshi.Builder()
-        .addLast(KotlinJsonAdapterFactory())
-        .build()
-
+    private val appContext = context.applicationContext
+    private val legacyPrefs = appContext.getSharedPreferences("capital_fortune_save", Context.MODE_PRIVATE)
+    private val database = Room.databaseBuilder(appContext, LocalGameDatabase::class.java, "capital_fortune_local.db").build()
+    private val dao = database.snapshots()
+    private val moshi = Moshi.Builder().addLast(KotlinJsonAdapterFactory()).build()
     private val adapter = moshi.adapter(GameState::class.java)
 
-    fun loadGameState(): GameState {
-        val json = prefs.getString(KEY_GAME_STATE, null)
-        if (!json.isNullOrEmpty()) {
-            try {
-                val state = adapter.fromJson(json)
-                if (state != null) {
-                    return expandState(state)
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+    suspend fun loadGameState(): GameState = withContext(Dispatchers.IO) {
+        val saved = dao.read()
+        if (saved != null) {
+            val parsed = runCatching { adapter.fromJson(saved.payload) }.getOrNull()
+            if (parsed != null) return@withContext expandState(parsed)
         }
-        return createFreshGameState()
+        // One-time migration from the previous SharedPreferences save format.
+        val legacy = legacyPrefs.getString(KEY_GAME_STATE, null)
+        val migrated = legacy?.let { runCatching { adapter.fromJson(it) }.getOrNull() }
+        if (migrated != null) {
+            val expanded = expandState(migrated)
+            dao.write(GameSnapshotEntity(payload = adapter.toJson(expanded)))
+            legacyPrefs.edit().remove(KEY_GAME_STATE).apply()
+            return@withContext expanded
+        }
+        val fresh = createFreshGameState()
+        dao.write(GameSnapshotEntity(payload = adapter.toJson(fresh)))
+        fresh
     }
 
+    suspend fun saveGameState(state: GameState) = withContext(Dispatchers.IO) {
+        dao.write(GameSnapshotEntity(payload = adapter.toJson(expandState(state))))
+    }
 
-    /** Adds the reference game's full catalogue to existing local saves without resetting ownership. */
+    suspend fun resetGame(): GameState = withContext(Dispatchers.IO) {
+        dao.clear()
+        legacyPrefs.edit().clear().apply()
+        val fresh = createFreshGameState()
+        dao.write(GameSnapshotEntity(payload = adapter.toJson(fresh)))
+        fresh
+    }
+
     private fun expandState(state: GameState): GameState = state.copy(
         businesses = LocalCatalogue.businesses(state.businesses),
         properties = LocalCatalogue.properties(state.properties),
@@ -44,53 +60,24 @@ class GameRepository(context: Context) {
         progression = state.progression.copy(level = state.progression.level.coerceAtLeast(1), clickTokens = state.progression.clickTokens.coerceIn(0.0, 150.0))
     )
 
-    fun saveGameState(state: GameState) {
-        try {
-            val json = adapter.toJson(expandState(state))
-            prefs.edit().putString(KEY_GAME_STATE, json).apply()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    fun resetGame(): GameState {
-        prefs.edit().clear().apply()
-        return expandState(createFreshGameState())
-    }
-
     private fun createFreshGameState(): GameState {
+        val now = System.currentTimeMillis()
         return GameState(
-            cash = 50.0,
-            casinoChips = 0L,
-            clickLevel = 1,
-            clickPower = 1.0,
-            clickMultiplier = 1.0,
+            cash = 50.0, casinoChips = 0L, clickLevel = 1, clickPower = 1.0, clickMultiplier = 1.0,
             clickUpgrades = DefaultData.initialClickUpgrades(),
             businesses = LocalCatalogue.businesses(DefaultData.initialBusinesses()),
             properties = LocalCatalogue.properties(DefaultData.initialProperties()),
             stocks = LocalCatalogue.stocks(DefaultData.initialStocks()),
             cryptos = LocalCatalogue.cryptos(DefaultData.initialCryptos()),
-            collectibles = LocalCatalogue.collectibles(DefaultData.initialCollectibles()),
+            collectibles = LocalCatalogue.collectibles(DefaultData.initialCollectibles(), now),
             research = LocalCatalogue.research(DefaultData.initialResearch()),
-            profile = LocalPlayerProfile(username = "GameDev"),
-            progression = LocalPlayerProgress(),
-            casinoStats = CasinoStats(),
-            achievements = DefaultData.initialAchievements(),
-            transactions = listOf(
-                Transaction(
-                    id = "tx_start",
-                    timestamp = System.currentTimeMillis(),
-                    type = TransactionType.CLICKER,
-                    description = "Initial seed capital granted",
-                    amount = 50.0
-                )
-            ),
-            netWorthHistory = listOf(50.0),
-            lastActiveTimestamp = System.currentTimeMillis()
+            casinoStats = CasinoStats(), achievements = DefaultData.initialAchievements(),
+            transactions = listOf(Transaction("tx_start", now, TransactionType.CLICKER, "Initial seed capital granted", 50.0)),
+            netWorthHistory = listOf(50.0), lastActiveTimestamp = now,
+            profile = LocalPlayerProfile(username = "GameDev", createdAt = now),
+            progression = LocalPlayerProgress(tokenUpdatedAt = now), lastFinancialSnapshotAt = now
         )
     }
 
-    companion object {
-        private const val KEY_GAME_STATE = "key_game_state_v1"
-    }
+    companion object { private const val KEY_GAME_STATE = "key_game_state_v1" }
 }
