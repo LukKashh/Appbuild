@@ -45,7 +45,7 @@ object LocalCatalogue {
         val enriched = source.mapIndexed { i, p -> p.copy(
             location = if (p.location == "Unassigned") listOf("Central District", "Riverside", "Innovation Park", "Old Town")[i % 4] else p.location,
             operatingExpensePerSec = if (p.operatingExpensePerSec > 0.0) p.operatingExpensePerSec else p.baseRentPerSec * 0.22,
-            occupancyRate = 0.68 + (i % 5) * 0.045, demandMultiplier = 0.94 + (i % 4) * 0.04, preciseCondition = p.conditionPercent.toDouble()) }
+            occupancyRate = if (p.occupancyRate == 0.75) 0.68 + (i % 5) * 0.045 else p.occupancyRate, demandMultiplier = if (p.demandMultiplier == 1.0) 0.94 + (i % 4) * 0.04 else p.demandMultiplier, preciseCondition = if (p.preciseCondition == 100.0 && p.conditionPercent != 100) p.conditionPercent.toDouble() else p.preciseCondition) }
         val definitions = listOf(
             arrayOf("room", "Shared House Room", "RESIDENTIAL", "Student Quarter", "15000", "8.25", "1.9"),
             arrayOf("garage", "Lockup Garage Row", "INDUSTRIAL", "Backstreets", "22000", "12.1", "2.8"),
