@@ -389,7 +389,7 @@ data class GameState(
     val totalIncomePerSec: Double
         get() {
             val biz = businesses.filter { it.isOwned }.sumOf { it.grossRevenuePerSec }
-            val prop = properties.filter { it.isOwned }.sumOf { it.rentPerSec }
+            val prop = properties.filter { it.isOwned }.sumOf { it.grossRentPerSec }
             return biz + prop
         }
 
