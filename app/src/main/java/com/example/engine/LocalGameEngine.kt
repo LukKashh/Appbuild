@@ -152,9 +152,24 @@ data class LocalCorporationMember(
     val rank: String,
     val department: String?,
     val joinedAt: Long,
+    val contributionDay: Long = 0L,
     val contributionToday: Double = 0.0,
     val lifetimeContribution: Double = 0.0,
-    val shiftsCompleted: Int = 0
+    val shiftsCompleted: Int = 0,
+    val isNpc: Boolean = false
+)
+
+data class LocalCorporationDepartment(
+    val id: String,
+    val officerPlayerId: String? = null,
+    val establishedAt: Long
+)
+
+data class LocalCorporationBusiness(
+    val instanceId: String,
+    val definitionId: String,
+    val acquiredAt: Long,
+    val lifetimeNetIncome: Double = 0.0
 )
 
 data class LocalCorporationObjective(
@@ -164,23 +179,44 @@ data class LocalCorporationObjective(
     val target: Double,
     val progress: Double = 0.0,
     val expiresAt: Long,
-    val cashReward: Double,
-    val experienceReward: Long
+    val minParticipants: Int = 1,
+    val participants: Set<String> = emptySet(),
+    val corporationXpReward: Long,
+    val treasuryReward: Double,
+    val memberXpReward: Double,
+    val milestone: Boolean = false
+)
+
+data class LocalCorporationCompletedObjective(
+    val title: String,
+    val completedAt: Long,
+    val succeeded: Boolean
 )
 
 data class LocalCorporation(
     val id: String,
     val name: String,
     val tag: String,
+    val founderId: String,
+    val recruitmentMode: String = "open",
     val description: String = "",
+    val createdAt: Long,
     val level: Int = 1,
     val experience: Long = 0,
     val treasury: Double = 0.0,
     val members: List<LocalCorporationMember> = emptyList(),
     val facilities: Map<String, Int> = emptyMap(),
-    val departments: Map<String, String?> = emptyMap(),
+    val departments: Map<String, LocalCorporationDepartment> = emptyMap(),
+    val businesses: List<LocalCorporationBusiness> = emptyList(),
     val objectives: List<LocalCorporationObjective> = emptyList(),
-    val activityLog: List<String> = emptyList()
+    val completedObjectives: List<LocalCorporationCompletedObjective> = emptyList(),
+    val objectiveCooldownUntil: Long = 0L,
+    val objectiveSequence: Long = 0L,
+    val milestoneIndex: Int = 0,
+    val lastTick: Long = 0L,
+    val activityLog: List<String> = emptyList(),
+    val pendingMemberXp: Map<String, Long> = emptyMap(),
+    val dissolved: Boolean = false
 )
 
 data class LocalLedgerEntry(
@@ -197,6 +233,10 @@ data class LocalCapacityUpgrade(val completesAt: Long, val cost: Double)
 data class LocalSimulationState(
     val cash: Double = 50.0,
     val reservedCash: Double = 0.0,
+    val playerId: String = "local-player",
+    val playerName: String = "Player",
+    val corporationCooldownUntil: Long = 0L,
+    val lastCorporationShiftAt: Long = 0L,
     val progress: LocalPlayerProgress = LocalPlayerProgress(),
     val companies: List<LocalCompanyInstance> = emptyList(),
     val referenceCompanies: List<ReferenceOwnedCompany> = emptyList(),
