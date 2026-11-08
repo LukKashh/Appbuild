@@ -539,7 +539,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             val prerequisite = node.requiredResearchId?.let { req -> current.research.any { it.id == req && it.isUnlocked } } ?: true
             if (!prerequisite) return@update current
             val now = System.currentTimeMillis()
-            val project = LocalResearchProject(id, now, now + (node.durationHours * 3600000.0).toLong(), node.cost, node.researchPointsCost, current.activeResearch.size)
+            val researchSpeedBonus = current.research.filter { it.isUnlocked }.sumOf { it.effects["researchSpeed"] ?: 0.0 } + (current.corporation.facilities["research"] ?: 0) * 0.01
+            val projectDurationHours = node.durationHours / (1.0 + researchSpeedBonus)
+            val project = LocalResearchProject(id, now, now + (projectDurationHours * 3600000.0).toLong(), node.cost, node.researchPointsCost, current.activeResearch.size)
             val tx = createTransaction(TransactionType.RESEARCH, "Started research: " + node.name, -node.cost)
             current.copy(cash = current.cash - node.cost, researchPoints = current.researchPoints - node.researchPointsCost, activeResearch = current.activeResearch + project, transactions = (listOf(tx) + current.transactions).take(200))
         }
