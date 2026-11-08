@@ -38,6 +38,7 @@ fun BusinessScreen(
     onCollectWallet: (String) -> Unit,
     onCollectAll: () -> Unit,
     onSellBusiness: (String) -> Unit,
+    onToggleSuspension: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedIndustry by remember { mutableStateOf<Industry?>(null) }
@@ -172,6 +173,7 @@ fun BusinessScreen(
                 onFireEmployee = { onFireEmployee(liveBiz.id) },
                 onBuyUpgrade = { upgId -> onBuyUpgrade(liveBiz.id, upgId) },
                 onCollectWallet = { onCollectWallet(liveBiz.id) },
+                onToggleSuspension = { onToggleSuspension(liveBiz.id) },
                 onSell = {
                     onSellBusiness(liveBiz.id)
                     detailBusiness = null
@@ -344,6 +346,7 @@ fun BusinessDetailDialog(
     onFireEmployee: () -> Unit,
     onBuyUpgrade: (String) -> Unit,
     onCollectWallet: () -> Unit,
+    onToggleSuspension: () -> Unit = {},
     onSell: () -> Unit
 ) {
     Dialog(onDismissRequest = onDismiss) {
@@ -434,6 +437,15 @@ fun BusinessDetailDialog(
                     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("Operating status:", style = MaterialTheme.typography.bodySmall, color = Color.White)
                         Text(if (business.isSuspended) "SUSPENDED" else if (business.netProfitPerSec < 0) "LOSS-MAKING" else "ACTIVE", style = MaterialTheme.typography.bodySmall, color = if (business.isSuspended || business.netProfitPerSec < 0) CrimsonLight else EmeraldLight)
+                    }
+                    val reactivationCost = maxOf(500.0, (business.liabilities - business.baseCost * 0.20).coerceAtLeast(0.0) + business.baseCost * 0.05)
+                    Button(
+                        onClick = onToggleSuspension,
+                        enabled = !business.isSuspended || playerCash >= reactivationCost,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(containerColor = if (business.isSuspended) EmeraldProfit else DarkSurfaceVariant, contentColor = if (business.isSuspended) Color.Black else Color.White)
+                    ) {
+                        Text(if (business.isSuspended) "REACTIVATE OPERATIONS • " + CurrencyFormatter.format(reactivationCost) else "SUSPEND OPERATIONS")
                     }
                 }
 
