@@ -110,7 +110,7 @@ object ReferenceResearchEngine {
         var next = state.copy(
             researchProjects = nextProjects,
             completedResearch = state.completedResearch + completedIds,
-            progress = award.progress,
+            progress = award.progress.copy(researchDone = award.progress.researchDone + completed.size),
             cash = state.cash + award.cashReward
         )
         completed.forEach { project ->
