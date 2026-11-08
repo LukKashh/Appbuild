@@ -30,8 +30,9 @@ object LocalSimulationEngine {
         val staff = if (b.minimumEmployees <= 0) 1.0 else (b.employeeCount.toDouble() / b.minimumEmployees).coerceIn(0.0, 1.0)
         val cycle = 1.0 + wave(stableSeed(b.id), at / 3_600_000.0) * if (b.industry == Industry.HOSPITALITY) 0.12 else 0.055
         val upgradeRevenue = b.upgrades.sumOf { max(0, it.level) * it.revenueBonusPerLevel }
+        val staffEfficiency = b.upgrades.sumOf { max(0, it.level) * it.staffEfficiencyPerLevel }
         val upgradeSavings = b.upgrades.sumOf { max(0, it.level) * it.expenseReductionPerLevel }.coerceIn(0.0, 0.65)
-        val gross = b.grossRevenuePerSec * (1.0 + upgradeRevenue) * cycle
+        val gross = b.grossRevenuePerSec * (1.0 + upgradeRevenue + staffEfficiency) * cycle
         val expenses = b.expensesPerSec * (1.0 - upgradeSavings)
         val net = gross - expenses
         val status = when { b.isSuspended -> "Suspended"; net < 0.0 -> "Loss-making"; net < gross * 0.05 -> "Break-even"; else -> "Profitable" }
@@ -41,7 +42,8 @@ object LocalSimulationEngine {
     fun propertyReport(p: Property, at: Long): LocalPropertyReport {
         val seed = stableSeed(p.id + p.location)
         val demand = (p.demandMultiplier + wave(seed, at / 21_600_000.0) * 0.10).coerceIn(0.5, 1.5)
-        val occupancy = (p.occupancyRate + wave(seed xor 0x6a09e667, at / 14_400_000.0) * 0.06).coerceIn(0.05, 1.0)
+        val occupancyBonus = p.upgrades.sumOf { max(0, it.level) * it.occupancyBonus }
+        val occupancy = (p.occupancyRate + wave(seed xor 0x6a09e667, at / 14_400_000.0) * 0.06 + occupancyBonus).coerceIn(0.05, 1.0)
         val gross = p.baseRentPerSec * occupancy * demand * p.calculateMultiplier()
         val savings = p.upgrades.sumOf { max(0, it.level) * it.expenseReduction }.coerceIn(0.0, 0.6)
         val expenses = p.operatingExpensePerSec * (1.0 - savings)
