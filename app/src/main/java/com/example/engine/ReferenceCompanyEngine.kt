@@ -95,6 +95,7 @@ object ReferenceCompanyEngine {
     fun buyCompany(state: LocalSimulationState, context: Context, definitionId: String, now: Long): LocalGameResult {
         val definition = ReferenceCatalogue.company(context, definitionId)
             ?: return reject(state, "Unknown company definition")
+        if (state.capacityUpgrade != null) return reject(state, "Cannot purchase companies during a capacity upgrade")
         if (state.referenceCompanies.size >= state.businessCapacitySlots) {
             return reject(state, "No free company slots — upgrade Business Management")
         }
@@ -122,11 +123,12 @@ object ReferenceCompanyEngine {
             reserves = definition.optDouble("reserves", 0.0),
             liabilities = definition.optDouble("liabilities", 0.0)
         )
-        val next = state.copy(
+        val purchased = state.copy(
             cash = state.cash - price,
             referenceCompanies = state.referenceCompanies + owned,
             progress = state.progress.copy(companiesBought = state.progress.companiesBought + 1)
         )
+        val next = awardXp(purchased, context, 15.0)
         return success(record(next, now, "company_purchase", "Acquired ${definition.optString("name")}", -price), "Company acquired")
     }
 
@@ -214,11 +216,12 @@ object ReferenceCompanyEngine {
         if (state.cash - state.reservedCash + 1e-9 < cost) return reject(state, "Insufficient available funds")
         val levels = company.upgrades.toMutableMap().apply { this[upgradeId] = level + 1 }
         val updated = company.copy(upgrades = levels, upgradeValue = company.upgradeValue + cost)
-        val next = state.copy(
+        val purchased = state.copy(
             cash = state.cash - cost,
             referenceCompanies = state.referenceCompanies.replaceCompany(updated),
             progress = state.progress.copy(upgradesPurchased = state.progress.upgradesPurchased + 1)
         )
+        val next = awardXp(purchased, context, 5.0)
         return success(record(next, now, "company_upgrade", "Upgraded ${upgrade.optString("name")}", -cost), "Upgrade purchased")
     }
 
@@ -245,11 +248,12 @@ object ReferenceCompanyEngine {
         val cost = branch.optDouble("cost", 0.0) * branch.optDouble("growth", 1.0).pow(company.branches)
         if (state.cash - state.reservedCash + 1e-9 < cost) return reject(state, "Insufficient available funds")
         val updated = company.copy(branches = company.branches + 1, upgradeValue = company.upgradeValue + cost)
-        val next = state.copy(
+        val purchased = state.copy(
             cash = state.cash - cost,
             referenceCompanies = state.referenceCompanies.replaceCompany(updated),
             progress = state.progress.copy(branchesOpened = state.progress.branchesOpened + 1)
         )
+        val next = awardXp(purchased, context, 30.0)
         return success(record(next, now, "branch_purchase", "Opened branch for ${definition.optString("name")}", -cost), "Branch opened")
     }
 
@@ -620,6 +624,17 @@ object ReferenceCompanyEngine {
             total += (company.upgrades[upgrade.optString("id")] ?: 0) * effect.optDouble(key, 0.0)
         }
         return total
+    }
+
+    private fun awardXp(state: LocalSimulationState, context: Context, baseXp: Double): LocalSimulationState {
+        val award = PlayerProgression.award(
+            state.progress,
+            baseXp * globalMultiplier(state, context, "xpPct")
+        )
+        return state.copy(
+            progress = award.progress,
+            cash = state.cash + award.cashReward
+        )
     }
 
     private fun record(state: LocalSimulationState, now: Long, category: String, description: String, amount: Double): LocalSimulationState {
