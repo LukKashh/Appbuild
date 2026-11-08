@@ -6,6 +6,7 @@ import org.json.JSONObject
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.max
+import kotlin.math.pow
 
 data class ReferenceCollectibleSale(
     val itemId: String,
@@ -219,10 +220,10 @@ object ReferenceCollectibleEngine {
         }
         val propertyValue = state.referenceProperties.sumOf { it.price + it.upgradeValue + it.uncollected }
         val stockValue = state.stockHoldings.entries.sumOf { (symbol, holding) ->
-            (ReferenceMarketEngine.getStockPrice(state, symbol, now) ?: 0.0) * holding.quantity
+            (ReferenceMarketSimulation.getStockPrice(symbol, now) ?: 0.0) * holding.quantity
         }
         val cryptoValue = state.cryptoHoldings.entries.sumOf { (symbol, holding) ->
-            (ReferenceMarketEngine.getCryptoPrice(state, symbol, now) ?: 0.0) * holding.quantity
+            (ReferenceMarketSimulation.getCryptoPrice(symbol, now) ?: 0.0) * holding.quantity
         }
         val collectiblesValue = state.collectibles.sumOf {
             valuation(context, it.definitionId, now)?.currentValue ?: it.currentValue
