@@ -13,7 +13,7 @@ import kotlin.random.Random
  * UI code should call this engine and persist the returned state as one transaction.
  */
 data class LocalPlayerProgress(
-    val xp: Long = 0,
+    val xp: Double = 0.0,
     val level: Int = 1,
     val levelRewarded: Int = 1,
     val clickCapBonus: Int = 0,
@@ -461,11 +461,9 @@ object LocalGameEngine {
     private fun withLevel(p: LocalPlayerProgress): LocalPlayerProgress {
         var level = 1
         var remaining = p.xp
-        var threshold = 200L
-        while (remaining >= threshold && level < 1000) {
-            remaining -= threshold
+        while (remaining >= PlayerProgression.xpForLevel(level) && level < 10_000) {
+            remaining -= PlayerProgression.xpForLevel(level).toDouble()
             level++
-            threshold = (200.0 * 1.12.pow(level - 1)).toLong().coerceAtLeast(200)
         }
         return p.copy(level = level)
     }
