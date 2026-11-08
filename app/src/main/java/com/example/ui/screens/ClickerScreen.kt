@@ -24,6 +24,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.engine.LocalSimulationEngine
 import com.example.model.ClickUpgrade
 import com.example.model.GameState
 import com.example.ui.components.CurrencyFormatter
@@ -48,9 +49,15 @@ fun ClickerScreen(
         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "coin_scale"
     )
+    val collectibleClickBonus = state.collectibles.filter { it.isOwned && it.bonusKey == "clickPct" }.sumOf { it.bonusValue }
+    val corporationClickBonus = (state.corporation.facilities["training"] ?: 0) * 0.01
     val earnings = state.clickPower * state.clickMultiplier *
-        (if (state.research.any { it.id == "res_2" && it.isUnlocked }) 2.0 else 1.0)
+        (if (state.research.any { it.id == "res_2" && it.isUnlocked }) 2.0 else 1.0) *
+        (if (state.collectibles.any { it.id == "col_1" && it.isOwned }) 1.05 else 1.0) *
+        (1.0 + collectibleClickBonus + corporationClickBonus)
     val autoIncome = state.netCashFlowPerSec
+    val xpRequired = LocalSimulationEngine.xpRequired(state.progression.level)
+    val xpProgress = (state.progression.xp / xpRequired).toFloat().coerceIn(0f, 1f)
 
     LazyColumn(
         modifier = modifier.fillMaxSize().padding(horizontal = 14.dp),
@@ -128,7 +135,7 @@ fun ClickerScreen(
                     Text("per tap", color = Color(0xFFDCCBEF), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 5.dp))
                 }
                 Spacer(Modifier.height(10.dp))
-                Text("LEVEL ${state.clickLevel} • TAP UPGRADES", color = Color(0xFFD7C3F0), style = MaterialTheme.typography.labelLarge, letterSpacing = 1.1.sp, modifier = Modifier.padding(top = 7.dp))
+                Text("PLAYER LEVEL ${state.progression.level} • CLICKER LEVEL ${state.clickLevel}", color = Color(0xFFD7C3F0), style = MaterialTheme.typography.labelLarge, letterSpacing = 1.1.sp, modifier = Modifier.padding(top = 7.dp))
             }
         }
 
@@ -144,6 +151,22 @@ fun ClickerScreen(
             }
         }
 
+        item {
+            TycoonCard(Modifier.fillMaxWidth(), borderColor = PurpleCrypto.copy(alpha = 0.55f)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Column {
+                        Text("PLAYER PROGRESSION", color = Color(0xFFBDA8D2), style = MaterialTheme.typography.labelSmall)
+                        Text("LEVEL \${state.progression.level}", color = GoldLight, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Black)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("\${state.progression.totalClicks} TOTAL CLICKS", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("LIFETIME EARNED \${CurrencyFormatter.format(state.progression.lifetimeEarned)}", color = EmeraldLight, style = MaterialTheme.typography.labelSmall)
+                    }
+                }
+                LinearProgressIndicator(progress = { xpProgress }, modifier = Modifier.fillMaxWidth())
+                Text("\${CurrencyFormatter.format(state.progression.xp)} / \${CurrencyFormatter.format(xpRequired)} XP TO NEXT LEVEL", color = Color(0xFFC9B8D9), style = MaterialTheme.typography.labelSmall)
+            }
+        }
         item {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Icon(Icons.Default.Upgrade, null, tint = GoldPrimary)
