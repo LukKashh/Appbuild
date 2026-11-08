@@ -51,13 +51,16 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
                 val base = if (loaded.lastSimulationAt <= 0L) loaded.copy(lastSimulationAt = now) else loaded
                 val (businessAdvanced, businessSummary) =
                     ReferenceCompanyEngine.tick(base, getApplication(), now, offline = true)
+                val (propertyAdvanced, propertySummary) =
+                    ReferencePropertyEngine.tick(businessAdvanced, getApplication(), now, offline = true)
                 val (advanced, generalSummary) =
-                    LocalGameEngine.tick(businessAdvanced, now, offline = true)
+                    LocalGameEngine.tick(propertyAdvanced, now, offline = true)
                 val summary = LocalOfflineSummary(
-                    elapsedMillis = maxOf(businessSummary.elapsedMillis, generalSummary.elapsedMillis),
-                    lines = businessSummary.lines + generalSummary.lines,
-                    totalNet = businessSummary.totalNet + generalSummary.totalNet,
-                    cappedMillis = maxOf(businessSummary.cappedMillis, generalSummary.cappedMillis)
+                    elapsedMillis = maxOf(businessSummary.elapsedMillis, propertySummary.elapsedMillis, generalSummary.elapsedMillis),
+                    lines = businessSummary.lines + propertySummary.lines + generalSummary.lines,
+                    totalNet = businessSummary.totalNet + propertySummary.totalNet + generalSummary.totalNet,
+                    cappedMillis = maxOf(businessSummary.cappedMillis, propertySummary.cappedMillis, generalSummary.cappedMillis),
+                    researchPoints = businessSummary.researchPoints + propertySummary.researchPoints + generalSummary.researchPoints
                 )
                 repository.save(advanced)
                 _state.value = advanced
@@ -88,7 +91,9 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
                     val now = System.currentTimeMillis()
                     val (businessAdvanced, _) =
                         ReferenceCompanyEngine.tick(_state.value, getApplication(), now, offline = false)
-                    val (advanced, _) = LocalGameEngine.tick(businessAdvanced, now, offline = false)
+                    val (propertyAdvanced, _) =
+                        ReferencePropertyEngine.tick(businessAdvanced, getApplication(), now, offline = false)
+                    val (advanced, _) = LocalGameEngine.tick(propertyAdvanced, now, offline = false)
                     _state.value = advanced
                     ticksSinceSave++
                     if (ticksSinceSave >= 5) {
@@ -170,6 +175,21 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun maintainProperty(propertyId: String) =
         execute { LocalGameEngine.maintainProperty(it, propertyId, System.currentTimeMillis()) }
+
+    fun buyReferenceProperty(definitionId: String) =
+        execute { ReferencePropertyEngine.buy(it, getApplication(), definitionId, System.currentTimeMillis()) }
+
+    fun upgradeReferenceProperty(instanceId: String, upgradeId: String) =
+        execute { ReferencePropertyEngine.upgrade(it, getApplication(), instanceId, upgradeId, System.currentTimeMillis()) }
+
+    fun maintainReferenceProperty(instanceId: String) =
+        execute { ReferencePropertyEngine.maintain(it, instanceId, System.currentTimeMillis()) }
+
+    fun collectReferenceRent(instanceId: String? = null) =
+        execute { ReferencePropertyEngine.collect(it, instanceId, System.currentTimeMillis()) }
+
+    fun sellReferenceProperty(instanceId: String) =
+        execute { ReferencePropertyEngine.sell(it, getApplication(), instanceId, System.currentTimeMillis()) }
 
     fun dismissOfflineSummary() { _offlineSummary.value = null }
     fun dismissError() { _lastError.value = null }
