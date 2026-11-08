@@ -11,7 +11,6 @@ data class LocalPropertyReport(val grossRent: Double, val expenses: Double, val 
 
 /** Deterministic, device-only simulation. It never requires a network clock or remote function. */
 object LocalSimulationEngine {
-    private const val SUSPENDED_IDLE_EXPENSE_RATIO = 0.15
     private const val STAKING_APY = 0.05
     private const val STAKING_PERIOD_MS = 30_000L
     private const val STAKING_PERIODS_PER_YEAR = 365.0 * 24.0 * 60.0 * 60.0 * 1000.0 / STAKING_PERIOD_MS
@@ -32,10 +31,6 @@ object LocalSimulationEngine {
     }
 
     fun businessReport(b: Business, at: Long): LocalBusinessReport {
-        if (b.isSuspended) {
-            val idleExpenses = b.expensesPerSec * SUSPENDED_IDLE_EXPENSE_RATIO
-            return LocalBusinessReport(0.0, idleExpenses, -idleExpenses, "Suspended")
-        }
         val staff = if (b.minimumEmployees <= 0) 1.0 else (b.employeeCount.toDouble() / b.minimumEmployees).coerceIn(0.0, 1.0)
         val cycle = 1.0 + wave(stableSeed(b.id), at / 3_600_000.0) * if (b.industry == Industry.HOSPITALITY) 0.12 else 0.055
         val upgradeRevenue = b.upgrades.sumOf { max(0, it.level) * it.revenueBonusPerLevel }
@@ -103,7 +98,7 @@ object LocalSimulationEngine {
             val autoSuspended = !business.isSuspended && liabilities > business.baseCost * 0.30
             val sample = LocalFinancialSample(now, gross, expenses)
             businessSettlement += net
-            researchFromBusiness += cappedHours * 2.0
+            if (!business.isSuspended) researchFromBusiness += cappedHours * 2.0
             business.copy(accumulatedWallet = wallet, reserves = reserves, liabilities = liabilities,
                 totalRevenue = business.totalRevenue + gross, totalExpenses = business.totalExpenses + expenses,
                 isSuspended = business.isSuspended || autoSuspended, financialHistory = (business.financialHistory + sample).takeLast(72))

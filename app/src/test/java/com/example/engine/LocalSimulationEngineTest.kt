@@ -15,8 +15,28 @@ class LocalSimulationEngineTest {
         val report = LocalSimulationEngine.businessReport(suspended, 1_000_000L)
 
         assertEquals(0.0, report.gross, 0.0)
-        assertEquals(suspended.expensesPerSec * 0.15, report.expenses, 1e-9)
+        assertEquals(suspended.expensesPerSec, report.expenses, 1e-9)
+        assertEquals(-suspended.expensesPerSec, report.net, 1e-9)
         assertEquals("Suspended", report.status)
+    }
+
+    @Test
+    fun suspendedBusinessDoesNotGenerateResearchPoints() {
+        val now = 3_600_000L
+        val suspended = DefaultData.initialBusinesses().first().copy(
+            isOwned = true,
+            isSuspended = true,
+            offlineCapHours = 0.0
+        )
+        val initial = GameState(
+            businesses = listOf(suspended),
+            lastActiveTimestamp = 0L,
+            lastFinancialSnapshotAt = 0L
+        )
+
+        val next = LocalSimulationEngine.advance(initial, now)
+
+        assertEquals(0.0, next.researchPoints, 0.0)
     }
 
     @Test

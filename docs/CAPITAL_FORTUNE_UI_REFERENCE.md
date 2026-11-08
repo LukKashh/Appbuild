@@ -12,9 +12,9 @@ This branch expands the Android game to match the breadth of the webapp while pr
 ## Expanded gameplay and data
 
 - Catalogue: expanded company and property portfolios, additional stock and cryptocurrency instruments, 300 collectible catalogue entries and an expanded research tree.
-- Business operations: branches, staffing, multilevel upgrades, operating costs, reserves, liabilities, financial history, suspension and paid reactivation.
+- Business operations: branches, staffing, multilevel upgrades, operating costs, reserves, liabilities, financial history, suspension and paid reactivation. Suspended businesses stop producing, retain the model's reduced idle schedule (15% of fixed operating costs and 50% of employee salaries), and do not generate research points.
 - Property management: condition, occupancy, demand, operating expenses, maintenance arrears, valuation and multilevel amenities.
-- Exchange: simulated time-based stock and crypto prices, cost basis, dividends, trading fees, queued limit/stop/take-profit orders, reserved funds and holdings, partial fills, cancellation and expiry.
+- Exchange: simulated time-based stock and crypto prices, cost basis, daily stock dividends, 5% annualized crypto staking yield when unlocked, trading fees, queued limit/stop/take-profit orders, reserved funds and holdings, partial fills, cancellation and expiry.
 - Research: R&D laboratory construction, research-point generation, parallel project slots, prerequisite gating, timed completion and permanent effects.
 - Corporation: local founding, treasury contributions, simulated local operators, objectives, management shifts, facilities, departments and subsidiaries.
 - Collectibles: rarity, limited editions, price variation, collection bonuses, holding periods and rarity-based resale percentages.
@@ -28,3 +28,9 @@ This branch expands the Android game to match the breadth of the webapp while pr
 - The economic simulation, market prices, orders, research timers, progression and corporation simulation run on-device. No cloud account or remote game server is required.
 - Corporation members are labelled local simulated operators. Cross-device multiplayer, real connected player membership, shared cloud saves, online leaderboards and server-authoritative play are not implemented in this offline-first build.
 - Generated visual templates guide the Compose layout; the implementation uses native UI components rather than treating screenshots as interactive screens. The supplied artwork ZIP is packaged as an Android asset and matched to collectible, business, property, stock and crypto catalogue cards by filename. Images load off the UI thread, are downsampled for mobile display and use a bounded bitmap cache; unmatched catalogue entries retain native icon placeholders.
+
+## Verification
+
+- The APK workflow runs JVM unit tests before assembling the debug APK.
+- Simulation regression tests cover suspended business costs and research generation, annualized staking accrual, and dividend posting.
+- Physical-device interaction and visual QA still need to be performed.
