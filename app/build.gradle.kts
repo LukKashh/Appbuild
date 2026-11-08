@@ -8,6 +8,13 @@ android {
   namespace = "com.example"
   compileSdk { version = release(36) { minorApiLevel = 1 } }
 
+  sourceSets {
+    getByName("main") {
+      // Package the supplied AI Studio artwork archive for native Android screens.
+      assets.srcDir(rootProject.file("public/assets"))
+    }
+  }
+
   defaultConfig {
     applicationId = "com.aistudio.capitalfortune.qwxzrt"
     minSdk = 24
