@@ -612,6 +612,23 @@ object ReferenceCompanyEngine {
         return (1.0 + value(personal)) * (1.0 + value(corporate))
     }
 
+    fun bonusAmount(state: LocalSimulationState, context: Context, key: String): Double {
+        val (personal, corporate) = modifiers(state, context)
+        fun value(mods: Mods): Double = when (key) {
+            "businessPct" -> mods.businessPct
+            "offlineHours" -> mods.offlineHours
+            "rentPct" -> mods.rentPct
+            "xpPct" -> mods.xpPct
+            "rpPct" -> mods.rpPct
+            "feeCut" -> mods.feeCut
+            "clickPct" -> mods.clickPct
+            "researchSpeed" -> mods.researchSpeed
+            "clickCap" -> mods.clickCap
+            else -> 0.0
+        }
+        return value(personal) + value(corporate)
+    }
+
     fun tradingFeeRate(state: LocalSimulationState, context: Context, market: String): Double {
         val (personal, corporate) = modifiers(state, context)
         val base = if (market.equals("crypto", true)) 0.0025 else 0.005
