@@ -32,7 +32,7 @@ object LocalSimulationEngine {
         val upgradeRevenue = b.upgrades.sumOf { max(0, it.level) * it.revenueBonusPerLevel }
         val upgradeSavings = b.upgrades.sumOf { max(0, it.level) * it.expenseReductionPerLevel }.coerceIn(0.0, 0.65)
         val gross = b.grossRevenuePerSec * (1.0 + upgradeRevenue) * cycle
-        val expenses = (b.operatingExpensePerSec + b.employeeCount * b.salaryPerEmployee) * (1.0 - upgradeSavings)
+        val expenses = b.expensesPerSec * (1.0 - upgradeSavings)
         val net = gross - expenses
         val status = when { b.isSuspended -> "Suspended"; net < 0.0 -> "Loss-making"; net < gross * 0.05 -> "Break-even"; else -> "Profitable" }
         return LocalBusinessReport(gross, expenses, net, status)
