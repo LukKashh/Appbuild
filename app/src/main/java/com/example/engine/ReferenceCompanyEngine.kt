@@ -292,7 +292,11 @@ object ReferenceCompanyEngine {
         val updated = state.referenceCompanies.map { company ->
             if (instanceId == null || company.instanceId == instanceId) company.copy(uncollected = 0.0) else company
         }
-        val next = state.copy(cash = state.cash + amount, referenceCompanies = updated)
+        val next = state.copy(
+            cash = state.cash + amount,
+            referenceCompanies = updated,
+            progress = state.progress.copy(lifetimeCashEarned = state.progress.lifetimeCashEarned + amount)
+        )
         return success(record(next, now, "company_collect", "Collected company operating income", amount), "Income collected")
     }
 
