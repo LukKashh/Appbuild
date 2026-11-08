@@ -207,7 +207,7 @@ data class LocalSimulationState(
     val nextSequence: Long = 1L
 )
 
-data class LocalOfflineLine(val label: String, val gross: Double, val expenses: Double, val net: Double, val eligible: Boolean)
+data class LocalOfflineLine(val label: String, val gross: Double, val expenses: Double, val net: Double, val eligible: Boolean, val note: String = "")
 data class LocalOfflineSummary(val elapsedMillis: Long, val lines: List<LocalOfflineLine>, val totalNet: Double, val cappedMillis: Long)
 
 sealed class LocalGameResult {
