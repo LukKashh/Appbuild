@@ -10,7 +10,11 @@ object LocalMarketEngine {
     private const val STOCK_FEE = 0.005
     private const val CRYPTO_FEE = 0.0025
     private const val ORDER_TTL = 7L * 24L * 60L * 60L * 1000L
-    private fun fee(market: String) = if (market == "STOCK") STOCK_FEE else CRYPTO_FEE
+    private fun fee(state: GameState, market: String): Double {
+        val base = if (market == "STOCK") STOCK_FEE else CRYPTO_FEE
+        val discount = ((state.corporation.facilities["trading"] ?: 0) * 0.02).coerceIn(0.0, 0.50)
+        return base * (1.0 - discount)
+    }
     private fun price(s: GameState, market: String, symbol: String): Double =
         if (market == "STOCK") s.stocks.firstOrNull { it.symbol == symbol }?.currentPrice ?: 0.0
         else s.cryptos.firstOrNull { it.symbol == symbol }?.currentPrice ?: 0.0
@@ -27,7 +31,7 @@ object LocalMarketEngine {
         require(qty > 0.0)
         if (side == "SELL") require(available(s, market, symbol) >= qty) { "Insufficient available holdings" }
         val reference = when { limitPrice > 0 -> limitPrice; triggerPrice > 0 -> triggerPrice; else -> current }
-        val reserve = if (side == "BUY" && kind != "MARKET") qty * reference * (1.0 + fee(market)) else 0.0
+        val reserve = if (side == "BUY" && kind != "MARKET") qty * reference * (1.0 + fee(s, market)) else 0.0
         require(s.cash >= reserve) { "Insufficient cash to reserve this order" }
         val nowOrder = LocalMarketOrder(UUID.randomUUID().toString(), market, symbol, side, kind, qty,
             limitPrice = limitPrice, triggerPrice = triggerPrice, createdAt = now, updatedAt = now, expiresAt = now + ORDER_TTL,
@@ -87,7 +91,7 @@ object LocalMarketEngine {
         val qty = min(remaining, if (order.market == "STOCK") rawQty.toLong().toDouble() else rawQty)
         if (qty <= 0.0) return input
         val gross = qty * executionPrice
-        val feeAmount = gross * fee(order.market)
+        val feeAmount = gross * fee(input, order.market)
         var cash = input.cash
         var reservedCash = input.reservedCash
         var orderReserve = order.reservedCash
