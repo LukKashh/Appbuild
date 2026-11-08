@@ -53,18 +53,18 @@ class LocalSimulationEngineTest {
     @Test
     fun marketPricesAreDeterministicForSameAssetAndTick() {
         val now = 1_799_000_000_000L
-        val stock = ReferenceMarketEngine.listStocks(now).first()
-        val stockTick = ReferenceMarketEngine.stockTick(now)
+        val stock = ReferenceMarketSimulation.listStocks(now).first()
+        val stockTick = ReferenceMarketSimulation.stockTick(now)
         assertEquals(
-            ReferenceMarketEngine.stockPriceAtTick(stock, stockTick),
+            ReferenceMarketSimulation.stockPriceAtTick(stock, stockTick),
             ReferenceMarketEngine.stockPriceAtTick(stock, stockTick),
             0.0
         )
 
-        val crypto = ReferenceMarketEngine.listCrypto(now).first()
-        val cryptoTick = ReferenceMarketEngine.cryptoTick(now)
+        val crypto = ReferenceMarketSimulation.listCrypto(now).first()
+        val cryptoTick = ReferenceMarketSimulation.cryptoTick(now)
         assertEquals(
-            ReferenceMarketEngine.cryptoPriceAtTick(crypto, cryptoTick),
+            ReferenceMarketSimulation.cryptoPriceAtTick(crypto, cryptoTick),
             ReferenceMarketEngine.cryptoPriceAtTick(crypto, cryptoTick),
             0.0
         )
