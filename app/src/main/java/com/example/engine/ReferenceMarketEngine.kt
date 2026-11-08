@@ -498,6 +498,7 @@ object ReferenceMarketEngine {
 
     private fun payDividends(state: LocalSimulationState, now: Long): LocalSimulationState {
         val today = Math.floorDiv(now, DAY)
+        if (state.lastDividendDay <= 0L) return state.copy(lastDividendDay = today)
         val start = max(state.lastDividendDay + 1L, today - 30L)
         var totalDividends = 0.0
         val definitions = listStocks(now).associateBy { it.ticker }
