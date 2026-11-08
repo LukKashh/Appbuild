@@ -311,6 +311,33 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
+    fun companyEconomy(instanceId: String) =
+        ReferenceCompanyEngine.economy(_state.value, getApplication(), instanceId, System.currentTimeMillis())
+
+    fun companySaleQuote(instanceId: String) =
+        ReferenceCompanyEngine.saleQuote(_state.value, getApplication(), instanceId, System.currentTimeMillis())
+
+    fun propertyEconomy(instanceId: String) =
+        ReferencePropertyEngine.economy(_state.value, getApplication(), instanceId, System.currentTimeMillis())
+
+    fun collectibleValuation(itemId: String) =
+        ReferenceCollectibleEngine.valuation(getApplication(), itemId, System.currentTimeMillis())
+
+    fun localNetWorth(): Double =
+        ReferenceCollectibleEngine.netWorth(_state.value, getApplication(), System.currentTimeMillis())
+
+    fun localMarketStocks(): List<ReferenceStockDefinition> =
+        ReferenceMarketEngine.listStocks(System.currentTimeMillis())
+
+    fun localMarketCrypto(): List<ReferenceCryptoDefinition> =
+        ReferenceMarketEngine.listCrypto(System.currentTimeMillis())
+
+    fun localStockPrice(symbol: String): Double? =
+        ReferenceMarketEngine.getStockPrice(_state.value, symbol, System.currentTimeMillis())
+
+    fun localCryptoPrice(symbol: String): Double? =
+        ReferenceMarketEngine.getCryptoPrice(_state.value, symbol, System.currentTimeMillis())
+
     /** Read-only reference definitions for feature screens; all data is bundled locally. */
     fun companyDefinitions(): List<JSONObject> =
         runCatching { ReferenceCatalogue.companies(getApplication()) }.getOrDefault(emptyList())
