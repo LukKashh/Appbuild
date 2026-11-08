@@ -166,6 +166,7 @@ object ReferenceCollectibleEngine {
             state = state.copy(
                 cash = state.cash + cash + award.cashReward,
                 progress = award.progress.copy(
+                    lifetimeCashEarned = award.progress.lifetimeCashEarned + cash + award.cashReward,
                     researchPoints = award.progress.researchPoints + rp,
                     collectionsDone = award.progress.collectionsDone + 1
                 ),
@@ -226,14 +227,19 @@ object ReferenceCollectibleEngine {
         val collectiblesValue = state.collectibles.sumOf {
             valuation(context, it.definitionId, now)?.currentValue ?: it.currentValue
         }
-        return state.cash + businessValue + propertyValue + stockValue + cryptoValue + collectiblesValue +
+        val legacyBusinessValue = state.companies.sumOf {
+            it.purchasePrice * it.branches + it.reserves + it.uncollected - it.liabilities
+        }
+        val legacyPropertyValue = state.properties.sumOf { it.marketValue + it.accumulatedRent }
+        return state.cash + state.reservedCash + businessValue + legacyBusinessValue +
+            propertyValue + legacyPropertyValue + stockValue + cryptoValue + collectiblesValue +
             (state.corporation?.treasury ?: 0.0) + state.casino.chips * ReferenceCasinoEngine.CHIP_VALUE
     }
 
     private fun statValues(state: LocalSimulationState, context: Context, now: Long): Map<String, Double> =
         mapOf(
             "clicks" to state.progress.lifetimeClicks.toDouble(),
-            "lifetimeEarned" to state.progress.lifetimeRevenue,
+            "lifetimeEarned" to state.progress.lifetimeCashEarned,
             "companiesBought" to state.progress.companiesBought.toDouble(),
             "companiesSold" to state.progress.companiesSold.toDouble(),
             "branches" to state.progress.branchesOpened.toDouble(),
@@ -271,7 +277,10 @@ object ReferenceCollectibleEngine {
         val suffix = cycle?.let { " (cycle ${it + 1})" } ?: ""
         val next = stateInput.copy(
             cash = stateInput.cash + cash + award.cashReward,
-            progress = award.progress.copy(researchPoints = award.progress.researchPoints + rp)
+            progress = award.progress.copy(
+                researchPoints = award.progress.researchPoints + rp,
+                lifetimeCashEarned = award.progress.lifetimeCashEarned + cash + award.cashReward
+            )
         )
         return record(next, now, "achievement_reward", "Achievement: $label$suffix", cash)
     }
