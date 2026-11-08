@@ -423,6 +423,18 @@ fun BusinessDetailDialog(
                         Text("Asset Valuation:", style = MaterialTheme.typography.bodySmall, color = Color.White)
                         Text(CurrencyFormatter.format(business.valuation), style = MaterialTheme.typography.bodySmall, color = GoldLight)
                     }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Operating reserves:", style = MaterialTheme.typography.bodySmall, color = Color.White)
+                        Text(CurrencyFormatter.format(business.reserves), style = MaterialTheme.typography.bodySmall, color = GoldLight)
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Liabilities:", style = MaterialTheme.typography.bodySmall, color = Color.White)
+                        Text(CurrencyFormatter.format(business.liabilities), style = MaterialTheme.typography.bodySmall, color = CrimsonLight)
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Operating status:", style = MaterialTheme.typography.bodySmall, color = Color.White)
+                        Text(if (business.isSuspended) "SUSPENDED" else if (business.netProfitPerSec < 0) "LOSS-MAKING" else "ACTIVE", style = MaterialTheme.typography.bodySmall, color = if (business.isSuspended || business.netProfitPerSec < 0) CrimsonLight else EmeraldLight)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -456,7 +468,7 @@ fun BusinessDetailDialog(
                         }
                         Button(
                             onClick = onHireEmployee,
-                            enabled = playerCash >= business.employeeHireCost,
+                            enabled = playerCash >= business.employeeHireCost && business.employeeCount < business.employeeCapacity,
                             colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = Color.Black)
                         ) {
                             Text("+ (${CurrencyFormatter.format(business.employeeHireCost)})")
@@ -469,7 +481,7 @@ fun BusinessDetailDialog(
                 // Branch Expansion
                 Button(
                     onClick = onExpandBranch,
-                    enabled = playerCash >= business.branchCost,
+                    enabled = playerCash >= business.branchCost && business.currentBranches < business.branchLimit,
                     colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = Color.Black),
                     shape = RoundedCornerShape(10.dp),
                     modifier = Modifier.fillMaxWidth()
@@ -502,16 +514,16 @@ fun BusinessDetailDialog(
                             Text(upg.name, style = MaterialTheme.typography.bodySmall, color = Color.White, fontWeight = FontWeight.SemiBold)
                             Text("${upg.multiplier}x Multiplier", style = MaterialTheme.typography.labelSmall, color = EmeraldLight)
                         }
-                        if (upg.isPurchased) {
-                            Text("OWNED", style = MaterialTheme.typography.labelSmall, color = EmeraldProfit, fontWeight = FontWeight.Bold)
+                        if (upg.level >= upg.maxLevel) {
+                            Text("MAX LEVEL", style = MaterialTheme.typography.labelSmall, color = EmeraldProfit, fontWeight = FontWeight.Bold)
                         } else {
                             Button(
                                 onClick = { onBuyUpgrade(upg.id) },
-                                enabled = playerCash >= upg.cost,
+                                enabled = playerCash >= upg.currentCost,
                                 colors = ButtonDefaults.buttonColors(containerColor = GoldPrimary, contentColor = Color.Black),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
-                                Text(CurrencyFormatter.format(upg.cost), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                Text("LVL " + upg.level + " → " + (upg.level + 1) + " • " + CurrencyFormatter.format(upg.currentCost), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -524,9 +536,10 @@ fun BusinessDetailDialog(
                     onClick = onSell,
                     border = BorderStroke(1.dp, CrimsonLoss),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = CrimsonLight),
+                    enabled = System.currentTimeMillis() >= business.acquiredAt + 6L * 60L * 60L * 1000L,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("SELL ENTERPRISE FOR 75% VALUATION (${CurrencyFormatter.format(business.valuation * 0.75)})")
+                    Text("SELL ENTERPRISE FOR 80% NET VALUATION (${CurrencyFormatter.format(business.valuation * 0.80 + business.accumulatedWallet + business.reserves - business.liabilities)})")
                 }
             }
         }
