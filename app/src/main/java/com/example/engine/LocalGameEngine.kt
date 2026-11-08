@@ -24,7 +24,11 @@ data class LocalPlayerProgress(
     val companiesSold: Int = 0,
     val branchesOpened: Int = 0,
     val upgradesPurchased: Int = 0,
-    val hires: Int = 0
+    val hires: Int = 0,
+    val propertiesBought: Int = 0,
+    val propertiesSold: Int = 0,
+    val maintenance: Int = 0,
+    val rentEarned: Double = 0.0
 )
 
 data class LocalEmployeeRole(
@@ -195,6 +199,8 @@ data class LocalSimulationState(
     val businessCapacitySlots: Int = 3,
     val capacityLevel: Int = 0,
     val properties: List<LocalPropertyInstance> = emptyList(),
+    val referenceProperties: List<ReferenceOwnedProperty> = emptyList(),
+    val soldProperties: List<ReferenceSoldProperty> = emptyList(),
     val stockHoldings: Map<String, LocalHolding> = emptyMap(),
     val cryptoHoldings: Map<String, LocalHolding> = emptyMap(),
     val marketOrders: List<LocalMarketOrder> = emptyList(),
