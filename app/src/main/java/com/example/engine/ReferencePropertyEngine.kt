@@ -6,6 +6,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.math.max
 import kotlin.math.min
+import kotlin.math.pow
 import kotlin.math.roundToInt
 
 data class ReferenceOwnedProperty(
