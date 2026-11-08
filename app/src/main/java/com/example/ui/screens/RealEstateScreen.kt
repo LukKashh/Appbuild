@@ -215,6 +215,11 @@ fun PropertyCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            ArchiveArtwork(
+                searchTerms = listOf(property.id, property.name, property.category.title),
+                modifier = Modifier.size(64.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = property.name,
