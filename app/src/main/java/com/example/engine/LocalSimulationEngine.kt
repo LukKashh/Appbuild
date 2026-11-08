@@ -154,7 +154,7 @@ object LocalSimulationEngine {
             researchPoints = input.researchPoints + researchEarned, researchPointsEarned = input.researchPointsEarned + researchEarned,
             progression = progress, lastActiveTimestamp = now)
         next = LocalMarketEngine.advance(next, now)
-        next = LocalCorporationEngine.advance(next, elapsedSeconds, now)
+        next = next.copy(corporation = LocalCorporationEngine.advance(next.corporation, elapsedSeconds, now))
         val history = if (now - input.lastFinancialSnapshotAt >= 60_000L) (next.netWorthHistory + next.totalNetWorth).takeLast(720) else next.netWorthHistory
         next = next.copy(netWorthHistory = history, lastFinancialSnapshotAt = if (history.size != input.netWorthHistory.size) now else input.lastFinancialSnapshotAt)
         return next
