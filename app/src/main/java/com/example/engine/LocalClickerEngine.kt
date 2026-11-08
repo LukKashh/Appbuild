@@ -92,7 +92,8 @@ object LocalClickerEngine {
             progress = award.progress.copy(
                 clickerLevel = clickerLevel,
                 lifetimeClicks = award.progress.lifetimeClicks + available,
-                lifetimeRevenue = award.progress.lifetimeRevenue + earned
+                lifetimeRevenue = award.progress.lifetimeRevenue + earned,
+                lifetimeCashEarned = award.progress.lifetimeCashEarned + earned
             )
         )
         return success(state, "Earned ${earned.toLong()} from $available taps")
