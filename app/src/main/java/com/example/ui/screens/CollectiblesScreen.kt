@@ -175,6 +175,12 @@ fun CollectibleCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.Top
         ) {
+            ArchiveArtwork(
+                searchTerms = listOf(item.id, item.name, item.subCategory),
+                modifier = Modifier.size(76.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+
             Column(modifier = Modifier.weight(1f)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
