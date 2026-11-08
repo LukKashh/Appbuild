@@ -132,7 +132,7 @@ fun StatisticsScreen(
                 Divider(color = DarkCardBorder, modifier = Modifier.padding(vertical = 4.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Net Operating Cash Flow:", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Color.White)
-                    Text("+${CurrencyFormatter.format(state.netCashFlowPerSec)}/s", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = EmeraldLight)
+                    Text((if (state.netCashFlowPerSec >= 0.0) "+" else "−") + CurrencyFormatter.format(kotlin.math.abs(state.netCashFlowPerSec)) + "/s", style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = EmeraldLight)
                 }
             }
         }
