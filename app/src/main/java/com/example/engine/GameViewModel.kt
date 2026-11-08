@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.UUID
+import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.random.Random
 
 data class OfflineReport(
@@ -33,6 +34,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     val offlineReport: StateFlow<OfflineReport?> = _offlineReport.asStateFlow()
 
     private var tickCounter = 0L
+    private val pendingTransactions = ConcurrentLinkedQueue<Transaction>()
 
     init {
         viewModelScope.launch {
@@ -88,6 +90,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     val newsTicker: StateFlow<String> = _newsTicker.asStateFlow()
 
     private fun onGameTick() {
+        flushPendingTransactions()
         val now = System.currentTimeMillis()
         _state.update { current ->
             val advanced = LocalSimulationEngine.advance(current, now, offline = false)
@@ -679,10 +682,25 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
+    /** Queue audit entries rather than nesting StateFlow.update inside a purchase update. */
     private fun logTransaction(type: TransactionType, desc: String, amount: Double) {
-        val tx = createTransaction(type, desc, amount)
+        pendingTransactions.add(createTransaction(type, desc, amount))
+    }
+
+    private fun flushPendingTransactions() {
+        val drained = mutableListOf<Transaction>()
+        while (true) drained.add(pendingTransactions.poll() ?: break)
+        if (drained.isEmpty()) return
         _state.update { current ->
-            current.copy(transactions = (listOf(tx) + current.transactions).take(50))
+            val ordered = drained.asReversed()
+            val ledgerEntries = ordered.map { tx ->
+                LocalLedgerEntry(
+                    id = tx.id, timestamp = tx.timestamp, category = tx.type.name.lowercase(),
+                    description = tx.description, debit = if (tx.amount < 0.0) -tx.amount else 0.0,
+                    credit = if (tx.amount > 0.0) tx.amount else 0.0, balanceAfter = current.cash
+                )
+            }
+            current.copy(transactions = (ordered + current.transactions).take(200), ledger = (ledgerEntries + current.ledger).take(500))
         }
     }
 
@@ -694,6 +712,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         _state.update { it.copy(preferences = preferences) }
     }
     fun resetGame() {
+        pendingTransactions.clear()
         viewModelScope.launch {
             val fresh = repository.resetGame()
             _state.value = fresh
