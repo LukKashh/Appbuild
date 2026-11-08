@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlin.math.pow
+import kotlin.math.roundToInt
 import com.example.engine.*
 import com.example.ui.theme.*
 import java.text.NumberFormat
@@ -190,6 +191,7 @@ fun ReferenceAssetsScreen(state: LocalSimulationState, viewModel: LocalGameViewM
                     ReferenceMetric("Companies", "${state.referenceCompanies.size}/${state.businessCapacitySlots}")
                     ReferenceMetric("Properties", state.referenceProperties.size.toString())
                     ReferenceMetric("Collectibles", state.collectibles.size.toString())
+                    ReferenceMetric("Casino chips", localCompact(state.casino.chips), GoldLight)
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     ReferenceMetric("Research complete", state.completedResearch.size.toString())
