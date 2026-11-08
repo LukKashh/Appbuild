@@ -186,7 +186,7 @@ object ReferenceCorporationEngine {
         return success(state.copy(corporation = null, ledger = (state.ledger + entry).takeLast(5000), nextSequence = state.nextSequence + 1), "Corporation dissolved")
     }
 
-    fun contribute(state: LocalSimulationState, amountInput: Double, now: Long): LocalGameResult {
+    fun contribute(state: LocalSimulationState, context: Context, amountInput: Double, now: Long): LocalGameResult {
         val corp = state.corporation ?: return reject(state, "You are not in a corporation")
         val meIndex = corp.members.indexOfFirst { it.playerId == state.playerId }
         if (meIndex < 0) return reject(state, "Corporation membership not found")
@@ -216,7 +216,7 @@ object ReferenceCorporationEngine {
         updatedCorp = progressObjectives(updatedCorp, state.playerId, "funds", amount, now)
         val playerAward = PlayerProgression.award(
             state.progress,
-            xp.roundToLong().toDouble() * ReferenceCompanyEngine.globalMultiplier(state, requireContextPlaceholder(), "xpPct")
+            xp.roundToLong().toDouble() * ReferenceCompanyEngine.globalMultiplier(state, context, "xpPct")
         )
         val next = state.copy(
             cash = state.cash - amount,
@@ -228,7 +228,7 @@ object ReferenceCorporationEngine {
         return success(record(rewarded, now, "corp_contribution", "Contributed to ${corp.name}", -amount), "Contribution recorded")
     }
 
-    fun shift(state: LocalSimulationState, now: Long): LocalGameResult {
+    fun shift(state: LocalSimulationState, context: Context, now: Long): LocalGameResult {
         val corp = state.corporation ?: return reject(state, "You are not in a corporation")
         if (now - state.lastCorporationShiftAt < SHIFT_COOLDOWN_MINUTES * 60_000L) {
             return reject(state, "You need a break before your next corporation shift")
@@ -242,7 +242,7 @@ object ReferenceCorporationEngine {
         updated = progressObjectives(updated, state.playerId, "shifts", 1.0, now)
         val award = PlayerProgression.award(
             state.progress,
-            20.0 * (1.0 + ReferenceCompanyEngine.globalMultiplier(state, EmptyContext.context, "xpPct"))
+            20.0 * ReferenceCompanyEngine.globalMultiplier(state, context, "xpPct")
         )
         val next = state.copy(
             corporation = updated,
@@ -440,7 +440,7 @@ object ReferenceCorporationEngine {
                     corporationXpReward = 1_200, treasuryReward = 0.0, memberXpReward = 400.0, milestone = true
                 )
             }
-            return sequence.copyObjectiveResult(milestone, milestoneIndex = corp.milestoneIndex + 1)
+            return corp.copyObjectiveResult(milestone, milestoneIndex = corp.milestoneIndex + 1)
         }
         val random = Random(base)
         val kinds = corp.objectives.map { it.type }.toSet()
