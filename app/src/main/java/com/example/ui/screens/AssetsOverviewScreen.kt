@@ -49,7 +49,7 @@ fun AssetsOverviewScreen(state: GameState, modifier: Modifier = Modifier) {
                 Column(Modifier.padding(18.dp)) {
                     Text("TOTAL NET WORTH", color = Color(0xFFCBB8E2), style = MaterialTheme.typography.labelMedium, letterSpacing = 1.3.sp)
                     Text(CurrencyFormatter.format(state.totalNetWorth), color = GoldLight, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black)
-                    Text("+${CurrencyFormatter.format(state.netCashFlowPerSec)} / sec net operating flow", color = EmeraldLight, style = MaterialTheme.typography.bodySmall)
+                    Text((if (state.netCashFlowPerSec >= 0.0) "+" else "−") + CurrencyFormatter.format(kotlin.math.abs(state.netCashFlowPerSec)) + " / sec net operating flow", color = if (state.netCashFlowPerSec >= 0.0) EmeraldLight else CrimsonLight, style = MaterialTheme.typography.bodySmall)
                 }
             }
         }
