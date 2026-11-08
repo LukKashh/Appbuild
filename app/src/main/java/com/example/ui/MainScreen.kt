@@ -144,7 +144,9 @@ fun MainScreen(viewModel: GameViewModel = viewModel()) {
                             onBuyStock = viewModel::buyStock,
                             onSellStock = viewModel::sellStock,
                             onBuyCrypto = viewModel::buyCrypto,
-                            onSellCrypto = viewModel::sellCrypto
+                            onSellCrypto = viewModel::sellCrypto,
+                            onPlaceMarketOrder = viewModel::placeMarketOrder,
+                            onCancelMarketOrder = viewModel::cancelMarketOrder
                         )
                         MainTab.TAP -> ClickerScreen(
                             state = state,
