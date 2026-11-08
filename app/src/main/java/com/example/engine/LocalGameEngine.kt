@@ -31,6 +31,9 @@ data class LocalPlayerProgress(
     val propertiesSold: Int = 0,
     val maintenance: Int = 0,
     val corpContributed: Double = 0.0,
+    val stockTrades: Long = 0,
+    val cryptoTrades: Long = 0,
+    val dividends: Double = 0.0,
     val rentEarned: Double = 0.0
 )
 
@@ -249,6 +252,9 @@ data class LocalSimulationState(
     val soldProperties: List<ReferenceSoldProperty> = emptyList(),
     val stockHoldings: Map<String, LocalHolding> = emptyMap(),
     val cryptoHoldings: Map<String, LocalHolding> = emptyMap(),
+    val stockLastEvalTick: Long = 0L,
+    val cryptoLastEvalTick: Long = 0L,
+    val lastDividendDay: Long = 0L,
     val marketOrders: List<LocalMarketOrder> = emptyList(),
     val researchProjects: List<LocalResearchProject> = emptyList(),
     val researchBuilt: Boolean = false,
