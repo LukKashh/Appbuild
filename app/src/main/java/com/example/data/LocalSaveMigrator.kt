@@ -118,6 +118,7 @@ object LocalSaveMigrator {
                 level = 1,
                 clickerLevel = legacy.clickLevel,
                 lifetimeRevenue = legacy.transactions.filter { it.amount > 0.0 }.sumOf { it.amount },
+                lifetimeCashEarned = legacy.transactions.filter { it.amount > 0.0 }.sumOf { it.amount },
                 lifetimeExpenses = legacy.transactions.filter { it.amount < 0.0 }.sumOf { -it.amount }
             ),
             companies = companies,
