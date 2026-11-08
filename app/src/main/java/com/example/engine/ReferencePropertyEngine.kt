@@ -188,7 +188,8 @@ object ReferencePropertyEngine {
             referenceProperties = updated,
             progress = state.progress.copy(
                 rentEarned = state.progress.rentEarned + amount,
-                lifetimeRevenue = state.progress.lifetimeRevenue + amount
+                lifetimeRevenue = state.progress.lifetimeRevenue + amount,
+                lifetimeCashEarned = state.progress.lifetimeCashEarned + amount
             )
         )
         return success(record(next, now, "rent_collect", "Collected property rental income", amount), "Rent collected")
