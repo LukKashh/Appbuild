@@ -120,8 +120,8 @@ private fun ReferenceAction(
 @Composable
 private fun ReferenceSecondaryAction(
     label: String,
-    onClick: () -> Unit,
-    enabled: Boolean = true
+    enabled: Boolean = true,
+    onClick: () -> Unit
 ) {
     OutlinedButton(
         onClick = onClick,
