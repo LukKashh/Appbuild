@@ -289,11 +289,16 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             }
             val newPower = 1.0 + updatedUpgrades.sumOf { it.level * it.powerBoost }
 
-            logTransaction(TransactionType.CLICKER, "Upgraded ${upg.name} (Lv. ${upg.level + 1})", -upg.currentCost)
+            val transaction = createTransaction(
+                TransactionType.CLICKER,
+                "Upgraded ${upg.name} (Lv. ${upg.level + 1})",
+                -upg.currentCost
+            )
             current.copy(
                 cash = newCash,
                 clickUpgrades = updatedUpgrades,
-                clickPower = newPower
+                clickPower = newPower,
+                transactions = (listOf(transaction) + current.transactions).take(50)
             )
         }
     }
@@ -366,8 +371,16 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             val updatedBiz = biz.copy(upgrades = updatedUpgrades)
             val updatedList = current.businesses.map { if (it.id == businessId) updatedBiz else it }
 
-            logTransaction(TransactionType.BUSINESS, "Upgraded ${biz.name}: ${upg.name}", -upg.cost)
-            current.copy(cash = current.cash - upg.cost, businesses = updatedList)
+            val transaction = createTransaction(
+                TransactionType.BUSINESS,
+                "Upgraded ${biz.name}: ${upg.name}",
+                -upg.cost
+            )
+            current.copy(
+                cash = current.cash - upg.cost,
+                businesses = updatedList,
+                transactions = (listOf(transaction) + current.transactions).take(50)
+            )
         }
     }
 
@@ -475,8 +488,16 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             val updatedProp = prop.copy(upgrades = updatedUpgrades)
             val updatedList = current.properties.map { if (it.id == propertyId) updatedProp else it }
 
-            logTransaction(TransactionType.PROPERTY, "Upgraded ${prop.name}: ${upg.name}", -upg.cost)
-            current.copy(cash = current.cash - upg.cost, properties = updatedList)
+            val transaction = createTransaction(
+                TransactionType.PROPERTY,
+                "Upgraded ${prop.name}: ${upg.name}",
+                -upg.cost
+            )
+            current.copy(
+                cash = current.cash - upg.cost,
+                properties = updatedList,
+                transactions = (listOf(transaction) + current.transactions).take(50)
+            )
         }
     }
 
@@ -755,14 +776,18 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    private fun logTransaction(type: TransactionType, desc: String, amount: Double) {
-        val tx = Transaction(
+    private fun createTransaction(type: TransactionType, desc: String, amount: Double): Transaction {
+        return Transaction(
             id = UUID.randomUUID().toString(),
             timestamp = System.currentTimeMillis(),
             type = type,
             description = desc,
             amount = amount
         )
+    }
+
+    private fun logTransaction(type: TransactionType, desc: String, amount: Double) {
+        val tx = createTransaction(type, desc, amount)
         _state.update { current ->
             current.copy(transactions = (listOf(tx) + current.transactions).take(50))
         }
