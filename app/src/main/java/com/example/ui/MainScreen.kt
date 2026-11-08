@@ -180,7 +180,16 @@ fun MainScreen(viewModel: GameViewModel = viewModel()) {
                             EmpireSection.ACHIEVEMENTS -> AchievementsScreen(state, viewModel::claimAchievement)
                             EmpireSection.STATISTICS -> StatisticsScreen(state, viewModel::resetGame)
                         }
-                        MainTab.CORP -> CorporationOverviewScreen(state)
+                        MainTab.CORP -> LocalCorporationScreen(
+                            state = state,
+                            onFound = viewModel::foundCorporation,
+                            onContribute = viewModel::contributeToCorporation,
+                            onShift = viewModel::corporationManagementShift,
+                            onUpgradeFacility = viewModel::upgradeCorporationFacility,
+                            onEstablishDepartment = viewModel::establishCorporationDepartment,
+                            onAcquireBusiness = viewModel::acquireCorporationBusiness,
+                            onClaimObjective = viewModel::claimCorporationObjective
+                        )
                     }
                     else -> TapSettingsFallback()
                 }
