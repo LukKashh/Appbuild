@@ -114,16 +114,8 @@ fun ReferenceExchangeScreen(state: LocalSimulationState, viewModel: LocalGameVie
                         price = price,
                         quantity = holding?.quantity ?: 0.0,
                         costBasis = holding?.costBasis ?: 0.0,
-                        isCrypto = true,
-                        onTrade = { side -> ExchangeTradeDialog(
-                            market = "crypto",
-                            symbol = asset.symbol,
-                            name = asset.name,
-                            price = price,
-                            side = side,
-                            onDismiss = {},
-                            onSubmit = viewModel::placeReferenceMarketOrder
-                        ) }
+                        market = "crypto",
+                        onSubmit = viewModel::placeReferenceMarketOrder
                     )
                 }
             } else {
@@ -138,16 +130,8 @@ fun ReferenceExchangeScreen(state: LocalSimulationState, viewModel: LocalGameVie
                         price = price,
                         quantity = holding?.quantity ?: 0.0,
                         costBasis = holding?.costBasis ?: 0.0,
-                        isCrypto = false,
-                        onTrade = { side -> ExchangeTradeDialog(
-                            market = "stock",
-                            symbol = asset.ticker,
-                            name = asset.name,
-                            price = price,
-                            side = side,
-                            onDismiss = {},
-                            onSubmit = viewModel::placeReferenceMarketOrder
-                        ) }
+                        market = "stock",
+                        onSubmit = viewModel::placeReferenceMarketOrder
                     )
                 }
             }
@@ -194,9 +178,12 @@ private fun ExchangeAssetCard(
     price: Double,
     quantity: Double,
     costBasis: Double,
-    isCrypto: Boolean,
-    onTrade: (LocalOrderSide) -> Unit
+    market: String,
+    onSubmit: (String, String, LocalOrderSide, LocalOrderKind, Double, Double?, Double?) -> Unit
 ) {
+    var showTicket by remember { mutableStateOf(false) }
+    var selectedSide by remember { mutableStateOf(LocalOrderSide.BUY) }
+
     Surface(
         color = DarkSurface,
         shape = RoundedCornerShape(17.dp),
@@ -220,18 +207,30 @@ private fun ExchangeAssetCard(
             }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
-                    onClick = { onTrade(LocalOrderSide.BUY) },
+                    onClick = { selectedSide = LocalOrderSide.BUY; showTicket = true },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(containerColor = PurpleContainer, contentColor = GoldLight)
                 ) { Text("Buy / Order") }
                 OutlinedButton(
-                    onClick = { onTrade(LocalOrderSide.SELL) },
+                    onClick = { selectedSide = LocalOrderSide.SELL; showTicket = true },
                     enabled = quantity > 0.0,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = PurpleCrypto)
                 ) { Text("Sell / Order") }
             }
         }
+    }
+
+    if (showTicket) {
+        ExchangeTradeDialog(
+            market = market,
+            symbol = symbol,
+            name = name,
+            price = price,
+            side = selectedSide,
+            onDismiss = { showTicket = false },
+            onSubmit = onSubmit
+        )
     }
 }
 
