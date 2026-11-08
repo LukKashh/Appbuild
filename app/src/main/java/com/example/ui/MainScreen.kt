@@ -164,7 +164,8 @@ fun MainScreen(viewModel: GameViewModel = viewModel()) {
                                 onBuyUpgrade = viewModel::buyBusinessUpgrade,
                                 onCollectWallet = viewModel::collectBusinessWallet,
                                 onCollectAll = viewModel::collectAllBusinessWallets,
-                                onSellBusiness = viewModel::sellBusiness
+                                onSellBusiness = viewModel::sellBusiness,
+                                onToggleSuspension = viewModel::toggleBusinessSuspension
                             )
                             EmpireSection.REAL_ESTATE -> RealEstateScreen(
                                 state = state,
