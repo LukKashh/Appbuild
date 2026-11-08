@@ -730,13 +730,27 @@ fun ReferencePropertyScreen(state: LocalSimulationState, viewModel: LocalGameVie
                     ReferenceSecondaryAction("Maintain") { viewModel.maintainReferenceProperty(property.instanceId) }
                     ReferenceSecondaryAction("Sell · 75%") { viewModel.sellReferenceProperty(property.instanceId) }
                 }
-                val firstUpgrade = viewModel.propertyUpgradeDefinitions().firstOrNull { upgrade ->
+                val eligibleUpgrades = viewModel.propertyUpgradeDefinitions().filter { upgrade ->
                     val categories = upgrade.optJSONArray("categories") ?: JSONArray()
                     (0 until categories.length()).any { categories.optString(it) == definition?.optString("category") }
                 }
-                if (firstUpgrade != null) {
-                    ReferenceSecondaryAction("Upgrade: ${firstUpgrade.optString("name")}") {
-                        viewModel.upgradeReferenceProperty(property.instanceId, firstUpgrade.optString("id"))
+                if (eligibleUpgrades.isNotEmpty()) {
+                    Text("Property improvements", color = GoldLight, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                    eligibleUpgrades.forEach { upgrade ->
+                        val upgradeId = upgrade.optString("id")
+                        val level = property.upgrades[upgradeId] ?: 0
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(upgrade.optString("name"), color = Color.White, style = MaterialTheme.typography.bodySmall)
+                                Text(
+                                    "Level $level / ${upgrade.optInt("max", 0)} · ${upgrade.optString("description")}",
+                                    color = Color(0xFFAA99BA), style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                            ReferenceSecondaryAction("Upgrade") {
+                                viewModel.upgradeReferenceProperty(property.instanceId, upgradeId)
+                            }
+                        }
                     }
                 }
             }
