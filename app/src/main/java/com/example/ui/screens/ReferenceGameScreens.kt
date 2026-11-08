@@ -591,14 +591,53 @@ fun ReferenceBusinessScreen(state: LocalSimulationState, viewModel: LocalGameVie
                         viewModel.setReferenceCompanySuspended(company.instanceId, !company.suspended)
                     }
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
-                    ReferenceSecondaryAction("Hire 1") {
-                        val firstRole = definition?.optJSONArray("roles")?.optJSONObject(0)?.optString("role")
-                        if (!firstRole.isNullOrBlank()) viewModel.hireReferenceStaff(company.instanceId, firstRole, 1)
+                val roleDefinitions = definition?.optJSONArray("roles")
+                if (roleDefinitions != null && roleDefinitions.length() > 0) {
+                    Text("Workforce & recruitment", color = GoldLight, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                    (0 until roleDefinitions.length()).forEach { roleIndex ->
+                        val role = roleDefinitions.optJSONObject(roleIndex) ?: return@forEach
+                        val roleName = role.optString("role")
+                        val headcount = company.staff[roleName] ?: 0
+                        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text("$roleName · $headcount employed", color = Color.White, style = MaterialTheme.typography.bodySmall)
+                                Text("Salary ${localCompact(role.optDouble("salary", 0.0))}/h · Productivity ${role.optDouble("productivity", 0.0)}", color = Color(0xFFAA99BA), style = MaterialTheme.typography.labelSmall)
+                            }
+                            ReferenceSecondaryAction("Hire 1") {
+                                viewModel.hireReferenceStaff(company.instanceId, roleName, 1)
+                            }
+                            Spacer(Modifier.width(5.dp))
+                            ReferenceSecondaryAction("Fire 1", enabled = headcount > 0) {
+                                viewModel.fireReferenceStaff(company.instanceId, roleName, 1)
+                            }
+                        }
                     }
-                    ReferenceSecondaryAction("Staff capacity") { viewModel.upgradeReferenceStaffCapacity(company.instanceId) }
-                    ReferenceSecondaryAction("Inject 10K") { viewModel.injectReferenceCapital(company.instanceId, 10_000.0) }
-                    ReferenceSecondaryAction("Sell") { viewModel.sellReferenceCompany(company.instanceId, true) }
+                    val packages = definition.optJSONArray("packages")
+                    if (packages != null && packages.length() > 0) {
+                        Text("Recruitment packages", color = GoldLight, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+                        (0 until packages.length()).forEach { packageIndex ->
+                            val pack = packages.optJSONObject(packageIndex) ?: return@forEach
+                            val roleName = pack.optString("role")
+                            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(pack.optString("name", "$roleName package"), color = Color.White, style = MaterialTheme.typography.bodySmall)
+                                    Text("${pack.optInt("count", 0)} staff · ${(pack.optDouble("discount", 0.0) * 100).toInt()}% recruitment discount", color = Color(0xFFAA99BA), style = MaterialTheme.typography.labelSmall)
+                                }
+                                ReferenceSecondaryAction("Recruit") {
+                                    viewModel.hireReferenceStaff(company.instanceId, roleName, 0, packageIndex)
+                                }
+                            }
+                        }
+                    }
+                }
+                economy?.expenseBreakdown?.takeIf { it.isNotEmpty() }?.let { breakdown ->
+                    Text("Expense breakdown", color = GoldLight, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.labelMedium)
+                    breakdown.forEach { (label, value) ->
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(label, color = Color(0xFFAA99BA), style = MaterialTheme.typography.labelSmall)
+                            Text(localCompact(value), color = CrimsonLight, style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
                 }
                 val upgrades = definition?.optJSONArray("upgrades")
                 if (upgrades != null && upgrades.length() > 0) {
