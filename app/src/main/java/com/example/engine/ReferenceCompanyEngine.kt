@@ -579,6 +579,26 @@ object ReferenceCompanyEngine {
         )
     }
 
+    fun globalMultiplier(state: LocalSimulationState, context: Context, key: String): Double {
+        val (personal, corporate) = modifiers(state, context)
+        fun value(mods: Mods): Double = when (key) {
+            "businessPct" -> mods.businessPct
+            "offlineHours" -> mods.offlineHours
+            "rentPct" -> mods.rentPct
+            "xpPct" -> mods.xpPct
+            "rpPct" -> mods.rpPct
+            "feeCut" -> mods.feeCut
+            "clickPct" -> mods.clickPct
+            "researchSpeed" -> mods.researchSpeed
+            "clickCap" -> mods.clickCap
+            else -> 0.0
+        }
+        return (1.0 + value(personal)) * (1.0 + value(corporate))
+    }
+
+    fun hashText(value: String): Int = hash(value)
+    fun deterministicWave(seed: Int, time: Double): Double = wave(seed, time)
+
     private fun upgradeSum(company: ReferenceOwnedCompany, definition: JSONObject, key: String): Double {
         val upgrades = definition.optJSONArray("upgrades") ?: JSONArray()
         var total = 0.0
