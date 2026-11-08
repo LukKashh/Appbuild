@@ -107,7 +107,7 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
                         val (propertyAdvanced, _) =
                             ReferencePropertyEngine.tick(businessAdvanced, getApplication(), now, offline = false)
                         val corporationAdvanced = ReferenceCorporationEngine.tick(propertyAdvanced, getApplication(), now)
-                        val marketAdvanced = ReferenceMarketEngine.tick(corporationAdvanced, getApplication(), now)
+                        val marketAdvanced = ReferenceMarketTrading.tick(corporationAdvanced, getApplication(), now)
                         val researchAdvanced = ReferenceResearchEngine.completeDue(marketAdvanced, getApplication(), now)
                         val checked = if (shouldSave) {
                             ReferenceCollectibleEngine.checkAchievements(researchAdvanced, getApplication(), now)
