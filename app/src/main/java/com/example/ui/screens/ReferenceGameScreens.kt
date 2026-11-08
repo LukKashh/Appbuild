@@ -333,8 +333,8 @@ fun ReferenceMarketScreen(state: LocalSimulationState, viewModel: LocalGameViewM
     var cryptoTab by remember { mutableStateOf(false) }
     var search by remember { mutableStateOf("") }
     val now = System.currentTimeMillis()
-    val stocks = remember(now / 60_000L) { ReferenceMarketEngine.listStocks(now) }
-    val crypto = remember(now / 60_000L) { ReferenceMarketEngine.listCrypto(now) }
+    val stocks = remember(now / 60_000L) { ReferenceMarketSimulation.listStocks(now) }
+    val crypto = remember(now / 60_000L) { ReferenceMarketSimulation.listCrypto(now) }
     val stockHoldings = state.stockHoldings
     val cryptoHoldings = state.cryptoHoldings
     val filteredStocks = stocks.filter { it.name.contains(search, true) || it.ticker.contains(search, true) }
