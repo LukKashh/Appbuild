@@ -3,6 +3,8 @@ package com.example.engine
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.data.GameRepository
+import com.example.data.LocalSaveMigrator
 import com.example.data.LocalSimulationRepository
 import com.example.data.ReferenceCatalogue
 import kotlinx.coroutines.Dispatchers
@@ -48,7 +50,10 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
             withContext(Dispatchers.IO) {
                 val loaded = repository.load()
                 val now = System.currentTimeMillis()
-                val initialized = if (loaded.lastSimulationAt <= 0L) loaded.copy(lastSimulationAt = now) else loaded
+                val initialState = if (loaded.lastSimulationAt <= 0L) {
+                    LocalSaveMigrator.migrate(GameRepository(getApplication()).loadGameState(), now)
+                } else loaded
+                val initialized = if (initialState.lastSimulationAt <= 0L) initialState.copy(lastSimulationAt = now) else initialState
                 val base = LocalClickerEngine.regenerate(initialized, getApplication(), now)
                 val (businessAdvanced, businessSummary) =
                     ReferenceCompanyEngine.tick(base, getApplication(), now, offline = true)
