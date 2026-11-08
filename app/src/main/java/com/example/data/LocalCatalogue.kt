@@ -1,7 +1,7 @@
 package com.example.data
 
 import com.example.model.*
-kotlin.math.pow
+import kotlin.math.pow
 
 /** Expands the shipped, deterministic local catalogue. No remote catalogue fetch is used. */
 object LocalCatalogue {
