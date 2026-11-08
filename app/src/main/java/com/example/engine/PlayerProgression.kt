@@ -1,7 +1,6 @@
 package com.example.engine
 
 import kotlin.math.pow
-import kotlin.math.roundToLong
 
 data class ProgressionAward(
     val progress: LocalPlayerProgress,
@@ -32,7 +31,7 @@ object PlayerProgression {
         (25.0 * (level / 2.0).pow(1.7)).roundToLong().toDouble()
 
     fun award(current: LocalPlayerProgress, rawAmount: Double): ProgressionAward {
-        val gain = rawAmount.coerceAtLeast(0.0).roundToLong()
+        val gain = rawAmount.coerceAtLeast(0.0)
         var xp = current.xp + gain
         var level = current.level.coerceAtLeast(1)
         var cash = 0.0
