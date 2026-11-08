@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.model.GameState
 import com.example.ui.components.CurrencyFormatter
 import com.example.ui.theme.*
@@ -60,7 +61,7 @@ fun CorporationOverviewScreen(state: GameState) {
     LazyColumn(Modifier.fillMaxSize().padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Column {
-                Text("CORPORATION", color = PurpleCrypto, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Black, letterSpacing = 2.dp.value.sp)
+                Text("CORPORATION", color = PurpleCrypto, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Black, letterSpacing = 2.sp)
                 Text("Build together", color = Color.White, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
                 Text("The corporation interface is prepared for a connected corporation service. Membership and shared contributions are not yet backed by an online service.", color = Color(0xFFC9B8D9), style = MaterialTheme.typography.bodySmall)
             }
