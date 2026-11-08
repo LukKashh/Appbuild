@@ -166,7 +166,7 @@ fun MainScreen(viewModel: LocalGameViewModel = viewModel()) {
                             EmpireSection.REAL_ESTATE -> ReferenceEmpireScreen(state, viewModel, "Real Estate")
                             EmpireSection.RESEARCH -> ReferenceEmpireScreen(state, viewModel, "Research")
                             EmpireSection.LUXURY -> ReferenceEmpireScreen(state, viewModel, "Luxury")
-                            EmpireSection.CASINO -> LocalCasinoMigrationNotice()
+                            EmpireSection.CASINO -> ReferenceCasinoScreen(state, viewModel)
                             EmpireSection.ACHIEVEMENTS -> ReferenceEmpireScreen(state, viewModel, "Awards")
                             EmpireSection.STATISTICS -> ReferenceEmpireScreen(state, viewModel, "Stats")
                         }
