@@ -13,8 +13,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -126,12 +126,6 @@ fun MainScreen(viewModel: GameViewModel = viewModel()) {
                                 selectedLabelColor = GoldLight,
                                 selectedLeadingIconColor = GoldLight
                             ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = empireSection == section,
-                                borderColor = DarkCardBorder,
-                                selectedBorderColor = PurpleCrypto
-                            )
                         )
                     }
                 }
@@ -235,13 +229,7 @@ private fun PlayerHudBar(
                         Text("LVL ${state.clickLevel}", color = GoldLight, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp))
                     }
                 }
-                Text("Tap progression", color = Color(0xFFBDA9D3), style = MaterialTheme.typography.labelSmall)
-                LinearProgressIndicator(
-                    progress = { 1f },
-                    modifier = Modifier.fillMaxWidth().height(5.dp).clip(RoundedCornerShape(8.dp)),
-                    color = PurpleCrypto,
-                    trackColor = Color(0xFF38204D)
-                )
+                Text("TAP LEVEL", color = Color(0xFFBDA9D3), style = MaterialTheme.typography.labelSmall)
             }
             Surface(
                 color = Color(0xFF071B16),
