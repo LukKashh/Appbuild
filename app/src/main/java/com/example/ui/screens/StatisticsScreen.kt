@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.model.GameState
+import com.example.model.LocalLedgerEntry
 import com.example.model.Transaction
 import com.example.model.TransactionType
 import com.example.ui.components.CurrencyFormatter
@@ -150,6 +151,21 @@ fun StatisticsScreen(
 
         items(state.transactions.take(15), key = { it.id }) { tx ->
             TransactionRow(tx = tx)
+        }
+
+        if (state.ledger.isNotEmpty()) {
+            item {
+                Text(
+                    text = "CENTRAL FINANCIAL LEDGER",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White,
+                    letterSpacing = 1.sp
+                )
+            }
+            items(state.ledger.take(20), key = { it.id }) { entry ->
+                LedgerEntryRow(entry)
+            }
         }
 
         // Reset game option
@@ -301,5 +317,22 @@ fun NetWorthChart(
             color = GoldPrimary,
             style = Stroke(width = 3.dp.toPx())
         )
+    }
+}
+
+@Composable
+private fun LedgerEntryRow(entry: LocalLedgerEntry) {
+    TycoonCard(modifier = Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text(entry.description, color = Color.White, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.bodySmall)
+                Text(entry.category.replace('_', ' ').uppercase() + " • " + SimpleDateFormat("dd MMM, HH:mm", Locale.getDefault()).format(Date(entry.timestamp)), color = Color(0xFFBDA8D2), style = MaterialTheme.typography.labelSmall)
+            }
+            Column(horizontalAlignment = Alignment.End) {
+                if (entry.debit > 0.0) Text("−" + CurrencyFormatter.format(entry.debit), color = CrimsonLight, fontWeight = FontWeight.Bold)
+                if (entry.credit > 0.0) Text("+" + CurrencyFormatter.format(entry.credit), color = EmeraldLight, fontWeight = FontWeight.Bold)
+                Text("Balance " + CurrencyFormatter.format(entry.balanceAfter), color = GoldLight, style = MaterialTheme.typography.labelSmall)
+            }
+        }
     }
 }
