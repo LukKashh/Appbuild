@@ -121,9 +121,10 @@ object LocalSimulationEngine {
         val research = input.research.map { node -> if (completedProjects.any { it.researchId == node.id }) node.copy(isUnlocked = true) else node }
         val researchXp = completedProjects.size * 100.0
         val tokenRegen = elapsedSeconds * 22.0
+        val xpBonus = (ownedBonuses["xpPct"] ?: 0.0) + (input.corporation.facilities["academy"] ?: 0) * 0.01
         val progress = addXp(input.progression.copy(clickTokens = (input.progression.clickTokens + tokenRegen).coerceAtMost(150.0),
             tokenUpdatedAt = now, lifetimeEarned = input.progression.lifetimeEarned + max(0.0, businessSettlement + propertySettlement)),
-            researchXp + max(0.0, businessSettlement + propertySettlement) * 0.001)
+            (researchXp + max(0.0, businessSettlement + propertySettlement) * 0.001) * (1.0 + xpBonus))
         val stocks = input.stocks.map { stock ->
             val price = marketPrice(stock.basePrice, stock.symbol, now, stock.volatility, false)
             val oldBucket = input.lastActiveTimestamp / 300_000L
