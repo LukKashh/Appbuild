@@ -386,7 +386,7 @@ object LocalGameEngine {
             val map = (if (order.market.equals("crypto", true)) state.cryptoHoldings else state.stockHoldings) + (order.symbol to holding)
             val released = reserve - spend
             val updatedOrder = order.copy(filledQuantity = order.quantity, reservedCash = 0.0, averageFillPrice = price, feePaid = order.feePaid + fee, status = LocalOrderStatus.EXECUTED)
-            var next = state.copy(cash = state.cash - spend, reservedCash = (state.reservedCash - reserve + released).coerceAtLeast(0.0),
+            var next = state.copy(cash = state.cash - spend, reservedCash = (state.reservedCash - reserve).coerceAtLeast(0.0),
                 marketOrders = state.marketOrders.map { if (it.id == order.id) updatedOrder else it })
             next = if (order.market.equals("crypto", true)) next.copy(cryptoHoldings = map) else next.copy(stockHoldings = map)
             success(next, "Buy order executed")
