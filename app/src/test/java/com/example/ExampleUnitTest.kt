@@ -78,7 +78,9 @@ class ExampleUnitTest {
 
     val owned = duplex.copy(
       isOwned = true,
-      conditionPercent = 100
+      conditionPercent = 100,
+      occupancyRate = 1.0,
+      demandMultiplier = 1.0
     )
     assertEquals(12.0, owned.rentPerSec, 0.001)
 
