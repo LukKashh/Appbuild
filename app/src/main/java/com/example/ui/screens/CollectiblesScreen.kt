@@ -267,13 +267,20 @@ fun CollectibleCard(
                     Text("PURCHASE", fontWeight = FontWeight.ExtraBold)
                 }
             } else {
-                OutlinedButton(
-                    onClick = onSell,
-                    border = BorderStroke(1.dp, CrimsonLoss),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = CrimsonLight),
-                    shape = RoundedCornerShape(10.dp)
-                ) {
-                    Text("SELL (85%)", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                val remainingMs = (item.holdUntil - System.currentTimeMillis()).coerceAtLeast(0L)
+                Column(horizontalAlignment = Alignment.End) {
+                    if (remainingMs > 0L) {
+                        Text("LOCKED • " + (remainingMs / 3600000L) + "h " + ((remainingMs / 60000L) % 60) + "m", color = Color(0xFFBDA8D2), style = MaterialTheme.typography.labelSmall)
+                    }
+                    OutlinedButton(
+                        onClick = onSell,
+                        enabled = remainingMs <= 0L,
+                        border = BorderStroke(1.dp, CrimsonLoss),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = CrimsonLight),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Text("SELL (" + (item.resalePercent * 100).toInt() + "%)", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
