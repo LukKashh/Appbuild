@@ -273,6 +273,7 @@ data class LocalSimulationState(
     val unlockedAchievements: Map<String, Long> = emptyMap(),
     val limitedCollectibleCopies: Map<String, Int> = emptyMap(),
     val collectibleSales: List<ReferenceCollectibleSale> = emptyList(),
+    val casino: LocalCasinoState = LocalCasinoState(),
     val corporation: LocalCorporation? = null,
     val ledger: List<LocalLedgerEntry> = emptyList(),
     val lastSimulationAt: Long = 0L,
