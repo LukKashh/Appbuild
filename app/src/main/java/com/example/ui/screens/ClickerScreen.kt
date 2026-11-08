@@ -18,7 +18,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
@@ -87,13 +86,13 @@ fun ClickerScreen(
                 Box(
                     Modifier.size(258.dp).clip(CircleShape)
                         .background(Brush.radialGradient(listOf(Color(0xFFFFF6B0), GoldPrimary, Color(0xFFDB7900), GoldDark)))
-                        .borderNeonGold(),
+    
                     contentAlignment = Alignment.Center
                 ) {
                     Box(
                         Modifier.size(218.dp).clip(CircleShape)
                             .background(Brush.radialGradient(listOf(Color(0xFFFFEFA0), Color(0xFFFFB900), Color(0xFF8B3E00))))
-                            .borderNeonGold(),
+
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -131,12 +130,6 @@ fun ClickerScreen(
                     Text("per tap", color = Color(0xFFDCCBEF), style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(bottom = 5.dp))
                 }
                 Spacer(Modifier.height(10.dp))
-                LinearProgressIndicator(
-                    progress = { (state.clickLevel % 10) / 10f },
-                    modifier = Modifier.fillMaxWidth(0.88f).height(9.dp).clip(RoundedCornerShape(20.dp)),
-                    color = PurpleCrypto,
-                    trackColor = Color(0xFF29133C)
-                )
                 Text("LEVEL ${state.clickLevel} • TAP UPGRADES", color = Color(0xFFD7C3F0), style = MaterialTheme.typography.labelLarge, letterSpacing = 1.1.sp, modifier = Modifier.padding(top = 7.dp))
             }
         }
@@ -172,7 +165,7 @@ private fun TapMetric(title: String, value: String, icon: androidx.compose.ui.gr
         modifier = modifier,
         color = Color(0xFF170827),
         shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, PurpleCrypto.copy(alpha = 0.75f)
+        border = BorderStroke(1.dp, PurpleCrypto.copy(alpha = 0.75f))
     ) {
         Column(Modifier.padding(horizontal = 9.dp, vertical = 12.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Icon(icon, null, tint = tint, modifier = Modifier.size(24.dp))
@@ -182,10 +175,6 @@ private fun TapMetric(title: String, value: String, icon: androidx.compose.ui.gr
         }
     }
 }
-
-private fun Modifier.borderNeonGold(): Modifier = this.then(
-    Modifier.background(Brush.linearGradient(listOf(Color.Transparent, Color.Transparent)))
-)
 
 @Composable
 fun ClickUpgradeItem(upgrade: ClickUpgrade, playerCash: Double, onBuy: () -> Unit) {
