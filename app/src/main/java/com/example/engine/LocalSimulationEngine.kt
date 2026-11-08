@@ -126,7 +126,7 @@ object LocalSimulationEngine {
         val tokenRegen = elapsedSeconds * 22.0
         val xpBonus = (ownedBonuses["xpPct"] ?: 0.0) + (input.corporation.facilities["academy"] ?: 0) * 0.01
         val progress = addXp(input.progression.copy(clickTokens = (input.progression.clickTokens + tokenRegen).coerceAtMost(150.0),
-            tokenUpdatedAt = now, lifetimeEarned = input.progression.lifetimeEarned + max(0.0, businessSettlement + propertySettlement)),
+            tokenUpdatedAt = now, lifetimeEarned = input.progression.lifetimeEarned + max(0.0, businessSettlement + propertySettlement + dividends + stakingYield)),
             (researchXp + max(0.0, businessSettlement + propertySettlement) * 0.001) * (1.0 + xpBonus))
         val stocks = input.stocks.map { stock ->
             val price = marketPrice(stock.basePrice, stock.symbol, now, stock.volatility, false)
@@ -143,7 +143,12 @@ object LocalSimulationEngine {
             val mood = when { price > crypto.previousPrice * 1.01 -> MarketSentiment.BULLISH; price < crypto.previousPrice * 0.99 -> MarketSentiment.BEARISH; else -> MarketSentiment.VOLATILE }
             crypto.copy(previousPrice = crypto.currentPrice, currentPrice = price, priceHistory = history, sentiment = mood)
         }
-        val dividends = if (now / 86_400_000L > input.lastActiveTimestamp / 86_400_000L) stocks.sumOf { it.holdingsValue * it.dividendYieldPercent / 100.0 / 365.0 } else 0.0
+        val elapsedDays = ((now / 86_400_000L) - (input.lastActiveTimestamp / 86_400_000L)).coerceAtLeast(0L)
+        val dividends = stocks.sumOf { it.holdingsValue * it.dividendYieldPercent / 100.0 / 365.0 * elapsedDays }
+        val stakingSeconds = if (offline) min(elapsedSeconds, 24.0 * 3600.0) else elapsedSeconds
+        val stakingYield = if (input.research.any { it.id == "res_11" && it.isUnlocked }) {
+            cryptos.sumOf { it.holdingsValue } * 0.005 * (stakingSeconds / 30.0)
+        } else 0.0
         val collectibles = input.collectibles.map { item ->
             val ageDays = max(0L, now - item.releaseAt) / 86_400_000.0
             val oscillation = wave(stableSeed(item.id), now / 21_600_000.0) * item.volatility
@@ -152,7 +157,7 @@ object LocalSimulationEngine {
             item.copy(currentValuation = value.coerceAtLeast(item.purchasePrice * 0.20))
         }
         var next = input.copy(
-            cash = input.cash + dividends, businesses = businesses, properties = properties, stocks = stocks, cryptos = cryptos,
+            cash = input.cash + dividends + stakingYield, businesses = businesses, properties = properties, stocks = stocks, cryptos = cryptos,
             collectibles = collectibles, research = research, activeResearch = activeResearch,
             researchPoints = input.researchPoints + researchEarned, researchPointsEarned = input.researchPointsEarned + researchEarned,
             progression = progress, lastActiveTimestamp = now)
