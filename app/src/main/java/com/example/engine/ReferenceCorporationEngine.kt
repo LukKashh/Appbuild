@@ -1,6 +1,7 @@
 package com.example.engine
 
 import android.content.Context
+import com.example.data.ReferenceCatalogue
 import org.json.JSONObject
 import kotlin.math.floor
 import kotlin.math.max
@@ -344,7 +345,7 @@ object ReferenceCorporationEngine {
     fun tick(state: LocalSimulationState, context: Context, now: Long): LocalSimulationState {
         var corp = state.corporation ?: return state
         if (corp.dissolved) return state.copy(corporation = null)
-        val elapsedHours = ((now - corp.lastTick).coerceAtLeast(0L) / HOUR_MS).coerceAtMost(24.0)
+        val elapsedHours = ((now - corp.lastTick).coerceAtLeast(0L) / HOUR_MS.toDouble()).coerceAtMost(24.0)
         if (elapsedHours > 0.0) {
             var income = 0.0
             val businesses = corp.businesses.map { business ->
