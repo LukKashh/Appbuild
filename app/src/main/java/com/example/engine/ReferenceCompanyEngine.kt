@@ -65,6 +65,21 @@ object ReferenceCompanyEngine {
     private const val COMPANY_RESALe_PCT = 0.80
     private const val MIN_HOLD_HOURS = 6L
 
+    private val SHORTAGE = mapOf(
+        "lemon" to ("prop" to 0.0),
+        "vending" to ("prop" to 1.0),
+        "cafe" to ("floor" to 0.3),
+        "carwash" to ("floor" to 0.5),
+        "studio" to ("floor" to 0.4),
+        "bakery" to ("prop" to 0.0),
+        "logistics" to ("prop" to 0.0),
+        "hotel" to ("prop" to 0.0),
+        "factory" to ("floor" to 0.25),
+        "bank" to ("floor" to 0.2),
+        "energy" to ("floor" to 0.5),
+        "studio_film" to ("floor" to 0.3)
+    )
+
     private data class Mods(
         val businessPct: Double = 0.0,
         val offlineHours: Double = 0.0,
