@@ -54,7 +54,8 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
                 val (propertyAdvanced, propertySummary) =
                     ReferencePropertyEngine.tick(businessAdvanced, getApplication(), now, offline = true)
                 val corporationAdvanced = ReferenceCorporationEngine.tick(propertyAdvanced, getApplication(), now)
-                val researchAdvanced = ReferenceResearchEngine.completeDue(corporationAdvanced, getApplication(), now)
+                val marketAdvanced = ReferenceMarketEngine.tick(corporationAdvanced, getApplication(), now)
+                val researchAdvanced = ReferenceResearchEngine.completeDue(marketAdvanced, getApplication(), now)
                 val (advanced, generalSummary) =
                     LocalGameEngine.tick(researchAdvanced, now, offline = true)
                 val summary = LocalOfflineSummary(
@@ -96,7 +97,8 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
                     val (propertyAdvanced, _) =
                         ReferencePropertyEngine.tick(businessAdvanced, getApplication(), now, offline = false)
                     val corporationAdvanced = ReferenceCorporationEngine.tick(propertyAdvanced, getApplication(), now)
-                    val researchAdvanced = ReferenceResearchEngine.completeDue(corporationAdvanced, getApplication(), now)
+                    val marketAdvanced = ReferenceMarketEngine.tick(corporationAdvanced, getApplication(), now)
+                    val researchAdvanced = ReferenceResearchEngine.completeDue(marketAdvanced, getApplication(), now)
                     val (advanced, _) = LocalGameEngine.tick(researchAdvanced, now, offline = false)
                     _state.value = advanced
                     ticksSinceSave++
@@ -173,6 +175,24 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun sellReferenceCompany(instanceId: String, confirmed: Boolean) =
         execute { ReferenceCompanyEngine.sell(it, getApplication(), instanceId, confirmed, System.currentTimeMillis()) }
+
+    fun placeReferenceMarketOrder(
+        market: String,
+        symbol: String,
+        side: LocalOrderSide,
+        kind: LocalOrderKind,
+        quantity: Double,
+        limitPrice: Double? = null,
+        triggerPrice: Double? = null
+    ) = execute {
+        ReferenceMarketEngine.placeOrder(
+            it, getApplication(), market, symbol, side, kind, quantity,
+            limitPrice, triggerPrice, System.currentTimeMillis()
+        )
+    }
+
+    fun cancelReferenceMarketOrder(orderId: String) =
+        execute { ReferenceMarketEngine.cancelOrder(it, orderId, System.currentTimeMillis()) }
 
     fun contributeToCorporation(playerId: String, amount: Double) =
         execute { LocalGameEngine.contributeToCorporation(it, playerId, amount, System.currentTimeMillis()) }
