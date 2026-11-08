@@ -12,7 +12,10 @@ object LocalMarketEngine {
     private const val ORDER_TTL = 7L * 24L * 60L * 60L * 1000L
     private fun fee(state: GameState, market: String): Double {
         val base = if (market == "STOCK") STOCK_FEE else CRYPTO_FEE
-        val discount = ((state.corporation.facilities["trading"] ?: 0) * 0.02).coerceIn(0.0, 0.50)
+        val corporationDiscount = (state.corporation.facilities["trading"] ?: 0) * 0.02
+        val researchDiscount = state.research.filter { it.isUnlocked }.sumOf { it.effects["feeCut"] ?: 0.0 }
+        val collectibleDiscount = state.collectibles.filter { it.isOwned && it.bonusKey == "feeCut" }.sumOf { it.bonusValue }
+        val discount = (corporationDiscount + researchDiscount + collectibleDiscount).coerceIn(0.0, 0.50)
         return base * (1.0 - discount)
     }
     private fun price(s: GameState, market: String, symbol: String): Double =
