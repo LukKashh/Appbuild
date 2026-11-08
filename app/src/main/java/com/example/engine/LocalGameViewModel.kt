@@ -53,7 +53,8 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
                     ReferenceCompanyEngine.tick(base, getApplication(), now, offline = true)
                 val (propertyAdvanced, propertySummary) =
                     ReferencePropertyEngine.tick(businessAdvanced, getApplication(), now, offline = true)
-                val researchAdvanced = ReferenceResearchEngine.completeDue(propertyAdvanced, getApplication(), now)
+                val corporationAdvanced = ReferenceCorporationEngine.tick(propertyAdvanced, getApplication(), now)
+                val researchAdvanced = ReferenceResearchEngine.completeDue(corporationAdvanced, getApplication(), now)
                 val (advanced, generalSummary) =
                     LocalGameEngine.tick(researchAdvanced, now, offline = true)
                 val summary = LocalOfflineSummary(
@@ -94,7 +95,8 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
                         ReferenceCompanyEngine.tick(_state.value, getApplication(), now, offline = false)
                     val (propertyAdvanced, _) =
                         ReferencePropertyEngine.tick(businessAdvanced, getApplication(), now, offline = false)
-                    val researchAdvanced = ReferenceResearchEngine.completeDue(propertyAdvanced, getApplication(), now)
+                    val corporationAdvanced = ReferenceCorporationEngine.tick(propertyAdvanced, getApplication(), now)
+                    val researchAdvanced = ReferenceResearchEngine.completeDue(corporationAdvanced, getApplication(), now)
                     val (advanced, _) = LocalGameEngine.tick(researchAdvanced, now, offline = false)
                     _state.value = advanced
                     ticksSinceSave++
@@ -186,6 +188,48 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun startReferenceResearch(researchId: String) =
         execute { ReferenceResearchEngine.start(it, getApplication(), researchId, System.currentTimeMillis()) }
+
+    fun createLocalCorporation(name: String, tag: String) =
+        execute { ReferenceCorporationEngine.create(it, name, tag, System.currentTimeMillis()) }
+
+    fun recruitCorporationNpc(name: String? = null, departmentId: String? = null) =
+        execute { ReferenceCorporationEngine.recruitNpc(it, name, departmentId, System.currentTimeMillis()) }
+
+    fun removeCorporationMember(memberId: String) =
+        execute { ReferenceCorporationEngine.removeMember(it, memberId, System.currentTimeMillis()) }
+
+    fun setCorporationMemberRank(memberId: String, rank: String) =
+        execute { ReferenceCorporationEngine.setRank(it, memberId, rank, System.currentTimeMillis()) }
+
+    fun transferCorporationFounder(memberId: String) =
+        execute { ReferenceCorporationEngine.transferFounder(it, memberId, System.currentTimeMillis()) }
+
+    fun leaveCorporation() =
+        execute { ReferenceCorporationEngine.leave(it, System.currentTimeMillis()) }
+
+    fun dissolveCorporation(confirmName: String) =
+        execute { ReferenceCorporationEngine.dissolve(it, confirmName, System.currentTimeMillis()) }
+
+    fun contributeToLocalCorporation(amount: Double) =
+        execute { ReferenceCorporationEngine.contribute(it, getApplication(), amount, System.currentTimeMillis()) }
+
+    fun completeCorporationShift() =
+        execute { ReferenceCorporationEngine.shift(it, getApplication(), System.currentTimeMillis()) }
+
+    fun upgradeCorporationFacility(facilityId: String) =
+        execute { ReferenceCorporationEngine.upgradeFacility(it, getApplication(), facilityId, System.currentTimeMillis()) }
+
+    fun establishCorporationDepartment(departmentId: String) =
+        execute { ReferenceCorporationEngine.establishDepartment(it, getApplication(), departmentId, System.currentTimeMillis()) }
+
+    fun assignCorporationOfficer(departmentId: String, memberId: String?) =
+        execute { ReferenceCorporationEngine.assignOfficer(it, departmentId, memberId, System.currentTimeMillis()) }
+
+    fun acquireCorporationBusiness(businessId: String) =
+        execute { ReferenceCorporationEngine.acquireBusiness(it, getApplication(), businessId, System.currentTimeMillis()) }
+
+    fun updateCorporationSettings(recruitmentMode: String? = null, description: String? = null) =
+        execute { ReferenceCorporationEngine.setSettings(it, recruitmentMode, description, System.currentTimeMillis()) }
 
     fun maintainProperty(propertyId: String) =
         execute { LocalGameEngine.maintainProperty(it, propertyId, System.currentTimeMillis()) }
