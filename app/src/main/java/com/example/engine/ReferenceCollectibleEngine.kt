@@ -226,7 +226,7 @@ object ReferenceCollectibleEngine {
             valuation(context, it.definitionId, now)?.currentValue ?: it.currentValue
         }
         return state.cash + businessValue + propertyValue + stockValue + cryptoValue + collectiblesValue +
-            (state.corporation?.treasury ?: 0.0)
+            (state.corporation?.treasury ?: 0.0) + state.casino.chips * ReferenceCasinoEngine.CHIP_VALUE
     }
 
     private fun statValues(state: LocalSimulationState, context: Context, now: Long): Map<String, Double> =
