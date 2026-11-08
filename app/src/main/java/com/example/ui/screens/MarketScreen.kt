@@ -38,9 +38,11 @@ fun MarketScreen(
     onSellStock: (String, Long) -> Unit,
     onBuyCrypto: (String, Double) -> Unit,
     onSellCrypto: (String, Double) -> Unit,
+    onPlaceMarketOrder: (String, String, String, String, Double, Double, Double) -> Unit = { _, _, _, _, _, _, _ -> },
+    onCancelMarketOrder: (String) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    var selectedTab by remember { mutableStateOf(0) } // 0: Stocks, 1: Crypto
+    var selectedTab by remember { mutableStateOf(0) } // 0: Stocks, 1: Crypto, 2: Orders
     var activeStockForTrade by remember { mutableStateOf<Stock?>(null) }
     var activeCryptoForTrade by remember { mutableStateOf<Crypto?>(null) }
 
@@ -94,11 +96,16 @@ fun MarketScreen(
                             )
                         }
                     )
+                    Tab(
+                        selected = selectedTab == 2,
+                        onClick = { selectedTab = 2 },
+                        text = { Text("ORDERS (" + state.marketOrders.count { it.status == "OPEN" || it.status == "PARTIAL" } + ")", fontWeight = FontWeight.Bold, color = if (selectedTab == 2) GoldLight else MaterialTheme.colorScheme.onSurfaceVariant) }
+                    )
                 }
             }
 
             // Portfolio Overview Card
-            item {
+            if (selectedTab != 2) item {
                 val isStocks = selectedTab == 0
                 val portVal = if (isStocks) totalStockVal else totalCryptoVal
                 val portPnl = if (isStocks) totalStockPnl else totalCryptoPnl
@@ -153,13 +160,36 @@ fun MarketScreen(
                         onTrade = { activeStockForTrade = stock }
                     )
                 }
-            } else {
+            } else if (selectedTab == 1) {
                 // Crypto List
                 items(state.cryptos, key = { it.symbol }) { crypto ->
                     CryptoCard(
                         crypto = crypto,
                         onTrade = { activeCryptoForTrade = crypto }
                     )
+                }
+            } else {
+                item {
+                    TycoonCard(Modifier.fillMaxWidth(), borderColor = PurpleCrypto.copy(alpha = 0.5f)) {
+                        Text("OPEN & RECENT ORDERS", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("Unfilled orders reserve cash or holdings until execution, cancellation or expiry.", color = Color(0xFFBDA8D2), style = MaterialTheme.typography.bodySmall)
+                        Text("Reserved cash: " + CurrencyFormatter.format(state.reservedCash), color = GoldLight, fontWeight = FontWeight.Bold)
+                    }
+                }
+                items(state.marketOrders.sortedByDescending { it.createdAt }, key = { it.id }) { order ->
+                    TycoonCard(Modifier.fillMaxWidth(), borderColor = if (order.status == "OPEN" || order.status == "PARTIAL") CyanTech.copy(alpha = 0.5f) else DarkCardBorder) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Column(Modifier.weight(1f)) {
+                                Text(order.side + " " + order.symbol + " • " + order.kind, color = Color.White, fontWeight = FontWeight.Bold)
+                                Text(order.market + " • " + order.status, color = CyanTech, style = MaterialTheme.typography.labelSmall)
+                                Text("Filled " + order.filledQuantity + " / " + order.quantity + " • avg " + CurrencyFormatter.format(order.averageFillPrice), color = Color(0xFFBDA8D2), style = MaterialTheme.typography.bodySmall)
+                                Text("Limit " + CurrencyFormatter.format(order.limitPrice) + " • Trigger " + CurrencyFormatter.format(order.triggerPrice), color = Color(0xFFBDA8D2), style = MaterialTheme.typography.bodySmall)
+                            }
+                            if (order.status == "OPEN" || order.status == "PARTIAL") {
+                                TextButton(onClick = { onCancelMarketOrder(order.id) }) { Text("CANCEL", color = CrimsonLight) }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -172,7 +202,8 @@ fun MarketScreen(
                 playerCash = state.cash,
                 onDismiss = { activeStockForTrade = null },
                 onBuy = { shares -> onBuyStock(liveStock.symbol, shares) },
-                onSell = { shares -> onSellStock(liveStock.symbol, shares) }
+                onSell = { shares -> onSellStock(liveStock.symbol, shares) },
+                onPlaceOrder = { side, kind, quantity, price -> onPlaceMarketOrder("STOCK", liveStock.symbol, side, kind, quantity.toDouble(), if (kind == "LIMIT") price else 0.0, if (kind == "LIMIT") 0.0 else price) }
             )
         }
 
@@ -184,7 +215,8 @@ fun MarketScreen(
                 playerCash = state.cash,
                 onDismiss = { activeCryptoForTrade = null },
                 onBuyUsd = { usd -> onBuyCrypto(liveCrypto.symbol, usd) },
-                onSellPercent = { pct -> onSellCrypto(liveCrypto.symbol, pct) }
+                onSellPercent = { pct -> onSellCrypto(liveCrypto.symbol, pct) },
+                onPlaceOrder = { side, kind, quantity, price -> onPlaceMarketOrder("CRYPTO", liveCrypto.symbol, side, kind, quantity, if (kind == "LIMIT") price else 0.0, if (kind == "LIMIT") 0.0 else price) }
             )
         }
     }
@@ -469,8 +501,12 @@ fun StockTradeDialog(
     playerCash: Double,
     onDismiss: () -> Unit,
     onBuy: (Long) -> Unit,
-    onSell: (Long) -> Unit
+    onSell: (Long) -> Unit,
+    onPlaceOrder: (String, String, Long, Double) -> Unit = { _, _, _, _ -> }
 ) {
+    var orderKind by remember { mutableStateOf("LIMIT") }
+    var orderQuantity by remember { mutableStateOf("1") }
+    var orderPrice by remember { mutableStateOf(stock.currentPrice.toString()) }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             color = DarkSurface,
@@ -545,12 +581,16 @@ fun StockTradeDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("CLOSE")
+                Divider(color = DarkCardBorder, modifier = Modifier.padding(vertical = 10.dp))
+                Text("ADVANCED ORDERS", color = GoldLight, fontWeight = FontWeight.Bold)
+                TextButton(onClick = { orderKind = when (orderKind) { "LIMIT" -> "STOP"; "STOP" -> "TAKE_PROFIT"; else -> "LIMIT" } }) { Text("Order type: " + orderKind + "  •  CHANGE") }
+                OutlinedTextField(orderQuantity, { orderQuantity = it.filter { ch -> ch.isDigit() } }, label = { Text("Share quantity") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(orderPrice, { orderPrice = it.filter { ch -> ch.isDigit() || ch == '.' } }, label = { Text(if (orderKind == "LIMIT") "Limit price" else "Trigger price") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { val q = orderQuantity.toLongOrNull() ?: 0L; val price = orderPrice.toDoubleOrNull() ?: 0.0; if (q > 0 && price > 0) onPlaceOrder("BUY", orderKind, q, price) }, enabled = (orderQuantity.toLongOrNull() ?: 0L) > 0 && (orderPrice.toDoubleOrNull() ?: 0.0) > 0.0, modifier = Modifier.weight(1f)) { Text("QUEUE BUY") }
+                    Button(onClick = { val q = orderQuantity.toLongOrNull() ?: 0L; val price = orderPrice.toDoubleOrNull() ?: 0.0; if (q > 0 && price > 0) onPlaceOrder("SELL", orderKind, q, price) }, enabled = (orderQuantity.toLongOrNull() ?: 0L) > 0 && stock.sharesOwned >= (orderQuantity.toLongOrNull() ?: Long.MAX_VALUE) && (orderPrice.toDoubleOrNull() ?: 0.0) > 0.0, modifier = Modifier.weight(1f)) { Text("QUEUE SELL") }
                 }
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("CLOSE") }
             }
         }
     }
@@ -562,8 +602,12 @@ fun CryptoTradeDialog(
     playerCash: Double,
     onDismiss: () -> Unit,
     onBuyUsd: (Double) -> Unit,
-    onSellPercent: (Double) -> Unit
+    onSellPercent: (Double) -> Unit,
+    onPlaceOrder: (String, String, Double, Double) -> Unit = { _, _, _, _ -> }
 ) {
+    var orderKind by remember { mutableStateOf("LIMIT") }
+    var orderQuantity by remember { mutableStateOf("1") }
+    var orderPrice by remember { mutableStateOf(crypto.currentPrice.toString()) }
     Dialog(onDismissRequest = onDismiss) {
         Surface(
             color = DarkSurface,
@@ -620,12 +664,16 @@ fun CryptoTradeDialog(
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                OutlinedButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text("CLOSE")
+                Divider(color = DarkCardBorder, modifier = Modifier.padding(vertical = 10.dp))
+                Text("ADVANCED ORDERS", color = GoldLight, fontWeight = FontWeight.Bold)
+                TextButton(onClick = { orderKind = when (orderKind) { "LIMIT" -> "STOP"; "STOP" -> "TAKE_PROFIT"; else -> "LIMIT" } }) { Text("Order type: " + orderKind + "  •  CHANGE") }
+                OutlinedTextField(orderQuantity, { orderQuantity = it.filter { ch -> ch.isDigit() || ch == '.' } }, label = { Text("Coin quantity") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(orderPrice, { orderPrice = it.filter { ch -> ch.isDigit() || ch == '.' } }, label = { Text(if (orderKind == "LIMIT") "Limit price" else "Trigger price") }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { val q = orderQuantity.toDoubleOrNull() ?: 0.0; val price = orderPrice.toDoubleOrNull() ?: 0.0; if (q > 0 && price > 0) onPlaceOrder("BUY", orderKind, q, price) }, enabled = (orderQuantity.toDoubleOrNull() ?: 0.0) > 0.0 && (orderPrice.toDoubleOrNull() ?: 0.0) > 0.0, modifier = Modifier.weight(1f)) { Text("QUEUE BUY") }
+                    Button(onClick = { val q = orderQuantity.toDoubleOrNull() ?: 0.0; val price = orderPrice.toDoubleOrNull() ?: 0.0; if (q > 0 && price > 0) onPlaceOrder("SELL", orderKind, q, price) }, enabled = (orderQuantity.toDoubleOrNull() ?: 0.0) > 0.0 && crypto.coinsOwned >= (orderQuantity.toDoubleOrNull() ?: Double.MAX_VALUE) && (orderPrice.toDoubleOrNull() ?: 0.0) > 0.0, modifier = Modifier.weight(1f)) { Text("QUEUE SELL") }
                 }
+                OutlinedButton(onClick = onDismiss, modifier = Modifier.fillMaxWidth()) { Text("CLOSE") }
             }
         }
     }
