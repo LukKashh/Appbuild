@@ -1257,3 +1257,186 @@ fun ReferenceSettingsScreen(viewModel: LocalGameViewModel) {
         }
     }
 }
+
+@Composable
+fun ReferenceCasinoScreen(state: LocalSimulationState, viewModel: LocalGameViewModel) {
+    var game by remember { mutableStateOf("Roulette") }
+    var betText by remember { mutableStateOf("10") }
+    var chipText by remember { mutableStateOf("10") }
+    var mines by remember { mutableIntStateOf(3) }
+    var rouletteKind by remember { mutableStateOf("red") }
+    var kenoPicks by remember { mutableStateOf(listOf(7, 13, 24, 39, 58)) }
+    val casino = state.casino
+    val active = casino.active
+    val bet = betText.toDoubleOrNull() ?: 0.0
+
+    LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp, 10.dp, 16.dp, 100.dp),
+        verticalArrangement = Arrangement.spacedBy(10.dp)
+    ) {
+        item {
+            ReferenceCard {
+                ReferenceSectionTitle("Casino & Gaming", "Five locally simulated casino games · 3% house edge on mines and hi-lo")
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    ReferenceMetric("Casino chips", localCompact(casino.chips), GoldLight)
+                    ReferenceMetric("Cash value", localCompact(casino.chips * ReferenceCasinoEngine.CHIP_VALUE), EmeraldLight)
+                    ReferenceMetric("Rounds", casino.stats.rounds.toString())
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                    OutlinedTextField(
+                        value = chipText,
+                        onValueChange = { chipText = it.filter(Char::isDigit).take(12) },
+                        label = { Text("Chips") },
+                        modifier = Modifier.weight(1f),
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White, focusedBorderColor = PurpleCrypto)
+                    )
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        ReferenceAction("Buy chips") { chipText.toLongOrNull()?.let(viewModel::buyCasinoChips) }
+                        ReferenceSecondaryAction("Sell chips") { chipText.toLongOrNull()?.let(viewModel::sellCasinoChips) }
+                    }
+                }
+                Text("Exchange rate: 1 casino chip = $100. No conversion fee.", color = Color(0xFFAA99BA), style = MaterialTheme.typography.bodySmall)
+            }
+        }
+        if (casino.last != null) {
+            item {
+                ReferenceCard {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        ReferenceSectionTitle("Last result")
+                        ReferenceTag(casino.last.game.uppercase(Locale.US))
+                    }
+                    Text(casino.last.detail, color = Color.White)
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        ReferenceMetric("Wager", localCompact(casino.last.bet), CrimsonLight)
+                        ReferenceMetric("Payout", localCompact(casino.last.payout), EmeraldLight)
+                        ReferenceMetric("Net", localCompact(casino.last.payout - casino.last.bet), if (casino.last.payout >= casino.last.bet) EmeraldLight else CrimsonLight)
+                    }
+                }
+            }
+        }
+        item {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("Roulette", "Keno", "Blackjack", "Mines", "Hi-Lo").forEach { option ->
+                    FilterChip(
+                        selected = game == option,
+                        onClick = { if (active == null) game = option },
+                        enabled = active == null || active.game.equals(option, true).let { it || game == option },
+                        label = { Text(option, style = MaterialTheme.typography.labelSmall) }
+                    )
+                }
+            }
+        }
+        item {
+            ReferenceCard {
+                when {
+                    active?.game == "blackjack" -> {
+                        ReferenceSectionTitle("Blackjack hand", "Stand on 17 · natural blackjack pays 3:2")
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            ReferenceMetric("Your hand", ReferenceCasinoEngine.handValue(active.playerCards).first.toString(), GoldLight)
+                            ReferenceMetric("Dealer showing", active.dealerCards.firstOrNull()?.display ?: "—")
+                            ReferenceMetric("Bet", localCompact(active.bet))
+                        }
+                        Text("Your cards: ${active.playerCards.joinToString("  ") { it.display }}", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("Dealer: ${active.dealerCards.firstOrNull()?.display ?: "—"}  [hidden]", color = Color(0xFFAA99BA))
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                            ReferenceAction("Hit", Modifier.weight(1f)) { viewModel.moveBlackjack("hit") }
+                            ReferenceSecondaryAction("Stand") { viewModel.moveBlackjack("stand") }
+                            ReferenceSecondaryAction("Double") { viewModel.moveBlackjack("double") }
+                        }
+                    }
+                    active?.game == "mines" -> {
+                        ReferenceSectionTitle("Mines", "${active.mines} mines · ${active.revealed.size} safe tiles revealed")
+                        Text("Current cash-out: ${localCompact(active.bet * ReferenceCasinoEngine.minesMultiplier(active.mines, active.revealed.size))}", color = EmeraldLight, fontWeight = FontWeight.Bold)
+                        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                            (0..4).forEach { row ->
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
+                                    (0..4).forEach { column ->
+                                        val tile = row * 5 + column
+                                        val revealed = tile in active.revealed
+                                        Surface(
+                                            modifier = Modifier.weight(1f).aspectRatio(1f).clickable(enabled = !revealed) { viewModel.revealMine(tile) },
+                                            color = if (revealed) EmeraldContainer else BlueNavy,
+                                            shape = RoundedCornerShape(8.dp),
+                                            border = BorderStroke(1.dp, if (revealed) EmeraldProfit else PurpleCrypto.copy(alpha = 0.6f))
+                                        ) {
+                                            Box(contentAlignment = Alignment.Center) {
+                                                if (revealed) Icon(Icons.Default.Check, null, tint = EmeraldLight)
+                                                else Icon(Icons.Default.HelpOutline, null, tint = Color(0xFFBBA9CD))
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        ReferenceAction("Cash out") { viewModel.cashoutMines() }
+                    }
+                    active?.game == "hilo" -> {
+                        ReferenceSectionTitle("Hi-Lo", "Choose whether the next card rank will be higher or lower")
+                        Text("Current card", color = Color(0xFFAA99BA), style = MaterialTheme.typography.labelSmall)
+                        Text(active.currentCard?.display ?: "—", color = GoldLight, fontSize = 38.sp, fontWeight = FontWeight.ExtraBold)
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            ReferenceMetric("Multiplier", "${String.format(Locale.US, "%.4f", active.multiplier)}x", EmeraldLight)
+                            ReferenceMetric("Possible payout", localCompact(active.bet * active.multiplier))
+                        }
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            ReferenceAction("Higher ↑", Modifier.weight(1f)) { viewModel.guessHiLo(true) }
+                            ReferenceAction("Lower ↓", Modifier.weight(1f)) { viewModel.guessHiLo(false) }
+                            ReferenceSecondaryAction("Cash out") { viewModel.cashoutHiLo() }
+                        }
+                        Text("History: ${active.history.joinToString("  ") { it.display }}", color = Color(0xFFAA99BA), style = MaterialTheme.typography.labelSmall)
+                    }
+                    else -> {
+                        ReferenceSectionTitle(game, "Minimum bet 1 chip · maximum bet 1,000,000 chips")
+                        OutlinedTextField(
+                            value = betText,
+                            onValueChange = { betText = it.filter { ch -> ch.isDigit() || ch == '.' }.take(14) },
+                            label = { Text("Bet in chips") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(focusedTextColor = Color.White, unfocusedTextColor = Color.White)
+                        )
+                        when (game) {
+                            "Roulette" -> {
+                                Text("Choose one outside bet. Straight and column/dozen wagers are available through this local roulette table.", color = Color(0xFFAA99BA), style = MaterialTheme.typography.bodySmall)
+                                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    listOf("red", "black", "even", "odd", "low", "high").forEach { option ->
+                                        FilterChip(selected = rouletteKind == option, onClick = { rouletteKind = option }, label = { Text(option.replaceFirstChar { it.uppercase() }) })
+                                    }
+                                }
+                                ReferenceAction("Spin roulette") {
+                                    if (bet >= ReferenceCasinoEngine.MIN_BET) viewModel.playRoulette(listOf(LocalRouletteBet(rouletteKind, bet)))
+                                }
+                            }
+                            "Keno" -> {
+                                Text("Five-number ticket: $kenoPicks. The draw selects 20 of 80 numbers.", color = Color(0xFFAA99BA), style = MaterialTheme.typography.bodySmall)
+                                ReferenceAction("Play Keno") { viewModel.playKeno(bet, kenoPicks) }
+                            }
+                            "Blackjack" -> ReferenceAction("Deal hand") { viewModel.startBlackjack(bet) }
+                            "Mines" -> {
+                                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                                    Text("Mines: $mines", color = Color.White, modifier = Modifier.weight(1f))
+                                    ReferenceSecondaryAction("−") { mines = (mines - 1).coerceAtLeast(1) }
+                                    ReferenceSecondaryAction("+") { mines = (mines + 1).coerceAtMost(24) }
+                                }
+                                ReferenceAction("Start mines") { viewModel.startMines(bet, mines) }
+                            }
+                            else -> ReferenceAction("Start Hi-Lo") { viewModel.startHiLo(bet) }
+                        }
+                    }
+                }
+            }
+        }
+        item {
+            ReferenceCard {
+                ReferenceSectionTitle("Casino statistics")
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    ReferenceMetric("Total wagered", localCompact(casino.stats.wagered))
+                    ReferenceMetric("Total payouts", localCompact(casino.stats.won), EmeraldLight)
+                    ReferenceMetric("Largest net win", localCompact(casino.stats.biggestWin), GoldLight)
+                }
+            }
+        }
+    }
+}
