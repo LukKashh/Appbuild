@@ -115,7 +115,8 @@ object LocalSimulationEngine {
                 currentValuation = (property.currentValuation * appreciation).coerceAtLeast(property.purchasePrice * 0.20))
         }
         val labPoints = if (input.researchLabBuilt) 30.0 * elapsedHours else 0.0
-        val researchEarned = labPoints + researchFromBusiness
+        val researchGenerationBonus = (input.corporation.facilities["research"] ?: 0) * 0.02
+        val researchEarned = (labPoints + researchFromBusiness) * (1.0 + researchGenerationBonus)
         val completedProjects = input.activeResearch.filter { it.completesAt <= now }
         val activeResearch = input.activeResearch.filter { it.completesAt > now }
         val research = input.research.map { node -> if (completedProjects.any { it.researchId == node.id }) node.copy(isUnlocked = true) else node }
