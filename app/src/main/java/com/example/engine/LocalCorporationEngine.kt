@@ -13,6 +13,7 @@ object LocalCorporationEngine {
 
     val facilities = listOf(
         Facility("headquarters", "Corporate Headquarters", 200000.0, "+5 simulated staff capacity per level"),
+        Facility("training", "Executive Training Centre", 150000.0, "+1% tap yield per level"),
         Facility("operations", "Operations Centre", 400000.0, "+1% corporate business revenue per level"),
         Facility("academy", "Management Academy", 250000.0, "+1% corporation XP per level"),
         Facility("research", "Shared Research Laboratory", 300000.0, "+2% research point generation per level"),
