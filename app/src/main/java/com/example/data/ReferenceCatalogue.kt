@@ -12,6 +12,7 @@ import java.util.zip.GZIPInputStream
  */
 object ReferenceCatalogue {
     @Volatile private var cached: JSONObject? = null
+    @Volatile private var cachedExtras: JSONObject? = null
 
     fun data(context: Context): JSONObject {
         cached?.let { return it }
@@ -20,6 +21,17 @@ object ReferenceCatalogue {
                 val output = ByteArrayOutputStream()
                 GZIPInputStream(input).use { gzip -> gzip.copyTo(output) }
                 JSONObject(output.toString(Charsets.UTF_8.name())).also { cached = it }
+            }
+        }
+    }
+
+    private fun extras(context: Context): JSONObject {
+        cachedExtras?.let { return it }
+        return synchronized(this) {
+            cachedExtras ?: context.applicationContext.assets.open("capital_fortune_catalog_extras.json.gz").use { input ->
+                val output = ByteArrayOutputStream()
+                GZIPInputStream(input).use { gzip -> gzip.copyTo(output) }
+                JSONObject(output.toString(Charsets.UTF_8.name())).also { cachedExtras = it }
             }
         }
     }
@@ -37,13 +49,13 @@ object ReferenceCatalogue {
     fun corporationBusinesses(context: Context): List<JSONObject> =
         data(context).getJSONObject("corporation").getJSONArray("businesses").toObjects()
     fun collectibleDefinitions(context: Context): List<JSONObject> =
-        data(context).getJSONObject("collectibles").getJSONArray("items").toObjects()
+        extras(context).getJSONObject("collectibles").getJSONArray("items").toObjects()
     fun collectibleCategories(context: Context): List<JSONObject> =
-        data(context).getJSONObject("collectibles").getJSONArray("categories").toObjects()
+        extras(context).getJSONObject("collectibles").getJSONArray("categories").toObjects()
     fun collections(context: Context): List<JSONObject> =
-        data(context).getJSONObject("collectibles").getJSONArray("collections").toObjects()
+        extras(context).getJSONObject("collectibles").getJSONArray("collections").toObjects()
     fun achievementDefinitions(context: Context): List<JSONObject> =
-        data(context).getJSONObject("achievements").getJSONArray("items").toObjects()
+        extras(context).getJSONObject("achievements").getJSONArray("items").toObjects()
 
     fun company(context: Context, id: String): JSONObject? =
         companies(context).firstOrNull { it.optString("id") == id }
