@@ -110,7 +110,7 @@ object LocalCatalogue {
     }
 
     fun collectibles(source: List<Collectible>, now: Long = System.currentTimeMillis()): List<Collectible> {
-        val items = source.toMutableList()
+        val items = source.map { item -> if (item.releaseAt <= 0L) item.copy(releaseAt = now) else item }.toMutableList()
         val categories = listOf(
             Pair("Vehicles", listOf("Viper", "Comet", "Stallion", "Phantom", "Raptor", "Aurora", "Vortex", "Monza", "Spectre")),
             Pair("Aircraft", listOf("Skyhawk", "Albatross", "Condor", "Swift", "Falcon", "Heron", "Osprey")),
