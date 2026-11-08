@@ -353,4 +353,19 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun achievementDefinitions(): List<JSONObject> =
         runCatching { ReferenceCatalogue.achievementDefinitions(getApplication()) }.getOrDefault(emptyList())
+
+    fun propertyUpgradeDefinitions(): List<JSONObject> =
+        runCatching { ReferenceCatalogue.propertyUpgrades(getApplication()) }.getOrDefault(emptyList())
+
+    fun collectibleCategoryDefinitions(): List<JSONObject> =
+        runCatching { ReferenceCatalogue.collectibleCategories(getApplication()) }.getOrDefault(emptyList())
+
+    fun corporationDepartmentDefinitions(): List<JSONObject> =
+        runCatching { ReferenceCatalogue.corporationDepartments(getApplication()) }.getOrDefault(emptyList())
+
+    fun corporationFacilityDefinitions(): List<JSONObject> =
+        runCatching { ReferenceCatalogue.corporationFacilities(getApplication()) }.getOrDefault(emptyList())
+
+    fun corporationBusinessDefinitions(): List<JSONObject> =
+        runCatching { ReferenceCatalogue.corporationBusinesses(getApplication()) }.getOrDefault(emptyList())
 }
