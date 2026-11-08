@@ -145,9 +145,10 @@ object LocalSimulationEngine {
         }
         val elapsedDays = ((now / 86_400_000L) - (input.lastActiveTimestamp / 86_400_000L)).coerceAtLeast(0L)
         val dividends = stocks.sumOf { it.holdingsValue * it.dividendYieldPercent / 100.0 / 365.0 * elapsedDays }
-        val stakingSeconds = if (offline) min(elapsedSeconds, 24.0 * 3600.0) else elapsedSeconds
+        val stakingPeriods = ((now / 30_000L) - (input.lastActiveTimestamp / 30_000L)).coerceAtLeast(0L)
+            .let { if (offline) min(it, 24L * 60L * 2L) else it }
         val stakingYield = if (input.research.any { it.id == "res_11" && it.isUnlocked }) {
-            cryptos.sumOf { it.holdingsValue } * 0.005 * (stakingSeconds / 30.0)
+            cryptos.sumOf { it.holdingsValue } * 0.005 * stakingPeriods
         } else 0.0
         val collectibles = input.collectibles.map { item ->
             val ageDays = max(0L, now - item.releaseAt) / 86_400_000.0
@@ -156,8 +157,21 @@ object LocalSimulationEngine {
             val value = item.purchasePrice / 1.05 * (1.0 + oscillation + scarcity + ageDays * item.appreciationRatePerSec * 100.0)
             item.copy(currentValuation = value.coerceAtLeast(item.purchasePrice * 0.20))
         }
+        val passiveTransactions = buildList {
+            if (dividends > 0.0) add(Transaction(UUID.randomUUID().toString(), now, TransactionType.DIVIDEND, "Stock dividends credited", dividends))
+            if (stakingYield > 0.0) add(Transaction(UUID.randomUUID().toString(), now, TransactionType.DIVIDEND, "Crypto staking yield credited", stakingYield))
+        }
+        val passiveLedger = passiveTransactions.map { tx ->
+            LocalLedgerEntry(
+                id = tx.id, timestamp = tx.timestamp, category = "passive_income",
+                description = tx.description, credit = tx.amount, balanceAfter = input.cash + dividends + stakingYield
+            )
+        }
         var next = input.copy(
-            cash = input.cash + dividends + stakingYield, businesses = businesses, properties = properties, stocks = stocks, cryptos = cryptos,
+            cash = input.cash + dividends + stakingYield,
+            transactions = (passiveTransactions + input.transactions).take(200),
+            ledger = (passiveLedger + input.ledger).take(500),
+            businesses = businesses, properties = properties, stocks = stocks, cryptos = cryptos,
             collectibles = collectibles, research = research, activeResearch = activeResearch,
             researchPoints = input.researchPoints + researchEarned, researchPointsEarned = input.researchPointsEarned + researchEarned,
             progression = progress, lastActiveTimestamp = now)
