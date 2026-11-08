@@ -105,6 +105,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             if (current.collectibles.find { it.id == "col_1" }?.isOwned == true) power *= 1.05
 
             val now = System.currentTimeMillis()
+            val progress = LocalSimulationEngine.addXp(current.progression.copy(
+                totalClicks = current.progression.totalClicks + 1,
+                lifetimeEarned = current.progression.lifetimeEarned + power,
+                tokenUpdatedAt = now
+            ), 0.5)
+            current.copy(cash = current.cash + power, progression = progress)
         }
     }
 
