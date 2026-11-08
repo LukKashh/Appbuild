@@ -568,7 +568,7 @@ object ReferenceCompanyEngine {
                 val level = corporation.facilities[id] ?: 0
                 val key = facility.optString("bonus")
                 if (level > 0 && key.isNotBlank()) {
-                    corp[key] = (corp[key] ?: 0.0) + level * facility.optDouble("perLevel", 0.0)
+                    corp[key] = min(0.1, (corp[key] ?: 0.0) + level * facility.optDouble("perLevel", 0.0))
                 }
             }
         }
