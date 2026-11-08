@@ -96,7 +96,7 @@ object ReferenceCompanyEngine {
         val definition = ReferenceCatalogue.company(context, definitionId)
             ?: return reject(state, "Unknown company definition")
         if (state.capacityUpgrade != null) return reject(state, "Cannot purchase companies during a capacity upgrade")
-        if (state.referenceCompanies.size >= state.businessCapacitySlots) {
+        if (state.referenceCompanies.size + state.companies.size >= state.businessCapacitySlots) {
             return reject(state, "No free company slots — upgrade Business Management")
         }
         val price = definition.optDouble("price", 0.0)
