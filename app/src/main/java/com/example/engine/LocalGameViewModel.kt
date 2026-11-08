@@ -60,7 +60,7 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
                 val (propertyAdvanced, propertySummary) =
                     ReferencePropertyEngine.tick(businessAdvanced, getApplication(), now, offline = true)
                 val corporationAdvanced = ReferenceCorporationEngine.tick(propertyAdvanced, getApplication(), now)
-                val marketAdvanced = ReferenceMarketEngine.tick(corporationAdvanced, getApplication(), now)
+                val marketAdvanced = ReferenceMarketTrading.tick(corporationAdvanced, getApplication(), now)
                 val researchAdvanced = ReferenceResearchEngine.completeDue(marketAdvanced, getApplication(), now)
                 val collectibleAdvanced = ReferenceCollectibleEngine.checkAchievements(researchAdvanced, getApplication(), now)
                 val (advanced, generalSummary) =
@@ -208,14 +208,14 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
         limitPrice: Double? = null,
         triggerPrice: Double? = null
     ) = execute {
-        ReferenceMarketEngine.placeOrder(
+        ReferenceMarketTrading.placeOrder(
             it, getApplication(), market, symbol, side, kind, quantity,
             limitPrice, triggerPrice, System.currentTimeMillis()
         )
     }
 
     fun cancelReferenceMarketOrder(orderId: String) =
-        execute { ReferenceMarketEngine.cancelOrder(it, orderId, System.currentTimeMillis()) }
+        execute { ReferenceMarketTrading.cancelOrder(it, orderId, System.currentTimeMillis()) }
 
     fun buyCasinoChips(chips: Long) =
         execute { ReferenceCasinoEngine.buyChips(it, chips, System.currentTimeMillis()) }
@@ -374,16 +374,16 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
         ReferenceCollectibleEngine.netWorth(_state.value, getApplication(), System.currentTimeMillis())
 
     fun localMarketStocks(): List<ReferenceStockDefinition> =
-        ReferenceMarketEngine.listStocks(System.currentTimeMillis())
+        ReferenceMarketSimulation.listStocks(System.currentTimeMillis())
 
     fun localMarketCrypto(): List<ReferenceCryptoDefinition> =
-        ReferenceMarketEngine.listCrypto(System.currentTimeMillis())
+        ReferenceMarketSimulation.listCrypto(System.currentTimeMillis())
 
     fun localStockPrice(symbol: String): Double? =
-        ReferenceMarketEngine.getStockPrice(_state.value, symbol, System.currentTimeMillis())
+        ReferenceMarketSimulation.getStockPrice(symbol, System.currentTimeMillis())
 
     fun localCryptoPrice(symbol: String): Double? =
-        ReferenceMarketEngine.getCryptoPrice(_state.value, symbol, System.currentTimeMillis())
+        ReferenceMarketSimulation.getCryptoPrice(symbol, System.currentTimeMillis())
 
     /** Read-only reference definitions for feature screens; all data is bundled locally. */
     fun companyDefinitions(): List<JSONObject> =
