@@ -35,7 +35,7 @@ object LocalMarketEngine {
         var n = s.copy(cash = s.cash - reserve, reservedCash = s.reservedCash + reserve, marketOrders = s.marketOrders + nowOrder)
         if (side == "SELL" && market == "STOCK" && kind != "MARKET") n = n.copy(stocks = n.stocks.map { if (it.symbol == symbol) it.copy(reservedShares = it.reservedShares + qty.toLong()) else it })
         if (side == "SELL" && market == "CRYPTO" && kind != "MARKET") n = n.copy(cryptos = n.cryptos.map { if (it.symbol == symbol) it.copy(reservedCoins = it.reservedCoins + qty) else it })
-        return if (kind == "MARKET") fill(n, nowOrder.id, qty, current, now) else evaluate(n, now)
+        return if (kind == "MARKET") fill(n, nowOrder.id, qty, current, now) else advance(n, now)
     }
 
     fun cancel(s: GameState, id: String, now: Long = System.currentTimeMillis()): GameState {
