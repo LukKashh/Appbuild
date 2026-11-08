@@ -1,5 +1,8 @@
 package com.example.ui.screens
 
+import android.media.AudioManager
+import android.media.ToneGenerator
+
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -43,6 +46,10 @@ fun ClickerScreen(
 ) {
     val scope = rememberCoroutineScope()
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
+    val tapTone = remember { ToneGenerator(AudioManager.STREAM_MUSIC, 28) }
+    DisposableEffect(tapTone) {
+        onDispose { tapTone.release() }
+    }
     var pressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
         targetValue = if (!state.preferences.reducedMotion && pressed) 0.94f else 1f,
@@ -115,6 +122,7 @@ fun ClickerScreen(
                                 indication = null
                             ) {
                                 if (state.preferences.hapticsEnabled) haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                if (state.preferences.soundEnabled) tapTone.startTone(ToneGenerator.TONE_PROP_BEEP, 35)
                                 onTap()
                                 scope.launch {
                                     pressed = true

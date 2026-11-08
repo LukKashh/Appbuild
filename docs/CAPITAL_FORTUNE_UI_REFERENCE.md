@@ -7,7 +7,7 @@ This branch expands the Android game to match the breadth of the webapp while pr
 - Portrait-first Android layout with a mobile-safe five-item bottom navigation: Assets, Markets, Tap, Empire, Corp.
 - Neon purple / midnight surfaces, gold interaction accents, positive/negative financial states, compact charts and dense but touch-friendly cards.
 - Empire retains Business, Real Estate, Research, Collectibles, Casino, Achievements and Statistics as nested destinations.
-- Profile and Settings are editable local screens, not placeholders.
+- Profile and Settings are editable local screens; tap haptics, click tones and reduced-motion preferences are connected to gameplay. Background music is identified as unavailable because this build contains no music track.
 
 ## Expanded gameplay and data
 

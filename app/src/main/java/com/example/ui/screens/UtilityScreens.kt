@@ -86,7 +86,7 @@ fun SettingsOverviewScreen(preferences: LocalGamePreferences, onChange: (LocalGa
         item { Text("These preferences are stored in the local game save and work without an account or connection.", color = Color(0xFFC9B8D9), style = MaterialTheme.typography.bodySmall) }
         item { PreferenceRow("Haptic feedback", "Tactile feedback for supported interactions", preferences.hapticsEnabled, { onChange(preferences.copy(hapticsEnabled = it)) }, Icons.Default.Vibration) }
         item { PreferenceRow("Sound effects", "Gameplay and interface sounds", preferences.soundEnabled, { onChange(preferences.copy(soundEnabled = it)) }, Icons.Default.VolumeUp) }
-        item { PreferenceRow("Background music", "Music playback", preferences.musicEnabled, { onChange(preferences.copy(musicEnabled = it)) }, Icons.Default.MusicNote) }
+        item { PreferenceInfoRow("Background music", "Unavailable in this build: no music track is bundled.", Icons.Default.MusicNote) }
         item { PreferenceRow("Reduced motion", "Reduce nonessential animation effects", preferences.reducedMotion, { onChange(preferences.copy(reducedMotion = it)) }, Icons.Default.MotionPhotosOff) }
         item { PreferenceRow("Compact numbers", "Use abbreviated large-number formatting", preferences.compactNumbers, { onChange(preferences.copy(compactNumbers = it)) }, Icons.Default.Numbers) }
         item {
@@ -108,6 +108,25 @@ private fun PreferenceRow(title: String, subtitle: String, checked: Boolean, onC
             Icon(icon, null, tint = PurpleCrypto); Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) { Text(title, color = Color.White, fontWeight = FontWeight.Bold); Text(subtitle, color = Color(0xFFBDA8D2), style = MaterialTheme.typography.bodySmall) }
             Switch(checked = checked, onCheckedChange = onChecked)
+        }
+    }
+}
+
+@Composable
+private fun PreferenceInfoRow(title: String, subtitle: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
+    Surface(
+        color = DarkSurface,
+        shape = RoundedCornerShape(14.dp),
+        border = BorderStroke(1.dp, DarkCardBorder),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Row(Modifier.fillMaxWidth().padding(15.dp), verticalAlignment = Alignment.CenterVertically) {
+            Icon(icon, null, tint = Color(0xFF8E7BA6))
+            Spacer(Modifier.width(12.dp))
+            Column {
+                Text(title, color = Color.White, fontWeight = FontWeight.Bold)
+                Text(subtitle, color = Color(0xFFBDA8D2), style = MaterialTheme.typography.bodySmall)
+            }
         }
     }
 }
