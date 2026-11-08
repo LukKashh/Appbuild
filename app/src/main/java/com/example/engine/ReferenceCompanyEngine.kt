@@ -441,15 +441,27 @@ object ReferenceCompanyEngine {
                 history = history
             )
         }
-        val updatedProgress = awardExperience(
-            state.copy(referenceCompanies = updatedCompanies),
-            context = context,
-            xp = max(0.0, totalNet) / 100.0,
-            revenue = lifetimeRevenue,
-            expenses = lifetimeExpenses,
-            researchPoints = researchPoints
+        val elapsedHours = elapsed / HOUR.toDouble()
+        val baseResearch = if (state.researchBuilt) {
+            balance.optJSONObject("research")?.optDouble("rpPerHour", 30.0)?.times(elapsedHours) ?: 0.0
+        } else 0.0
+        val totalResearch = (baseResearch + researchPoints) *
+            globalMultiplier(state, context, "rpPct")
+        val updatedProgress = state.copy(
+            referenceCompanies = updatedCompanies,
+            progress = state.progress.copy(
+                lifetimeRevenue = state.progress.lifetimeRevenue + lifetimeRevenue,
+                lifetimeExpenses = state.progress.lifetimeExpenses + lifetimeExpenses,
+                researchPoints = state.progress.researchPoints + totalResearch
+            )
         )
-        return updatedProgress to LocalOfflineSummary(elapsed, lines, totalNet, maxCappedMillis)
+        return updatedProgress to LocalOfflineSummary(
+            elapsedMillis = elapsed,
+            lines = lines,
+            totalNet = totalNet,
+            cappedMillis = maxCappedMillis,
+            researchPoints = totalResearch
+        )
     }
 
     private fun companyEconomy(
@@ -608,25 +620,6 @@ object ReferenceCompanyEngine {
             total += (company.upgrades[upgrade.optString("id")] ?: 0) * effect.optDouble(key, 0.0)
         }
         return total
-    }
-
-    private fun awardExperience(
-        state: LocalSimulationState,
-        context: Context,
-        xp: Double,
-        revenue: Double,
-        expenses: Double,
-        researchPoints: Double
-    ): LocalSimulationState {
-        val earnedXp = (xp * (1.0 + modifiers(state, context).first.xpPct)).coerceAtLeast(0.0)
-        return state.copy(
-            progress = state.progress.copy(
-                xp = state.progress.xp + earnedXp.toLong(),
-                lifetimeRevenue = state.progress.lifetimeRevenue + revenue,
-                lifetimeExpenses = state.progress.lifetimeExpenses + expenses,
-                researchPoints = state.progress.researchPoints + researchPoints
-            )
-        )
     }
 
     private fun record(state: LocalSimulationState, now: Long, category: String, description: String, amount: Double): LocalSimulationState {
