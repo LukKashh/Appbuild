@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.GameRepository
 import com.example.model.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +26,7 @@ data class OfflineReport(
 class GameViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = GameRepository(application)
 
-    private val _state = MutableStateFlow(repository.loadGameState())
+    private val _state = MutableStateFlow(GameState())
     val state: StateFlow<GameState> = _state.asStateFlow()
 
     private val _offlineReport = MutableStateFlow<OfflineReport?>(null)
@@ -33,8 +35,12 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     private var tickCounter = 0L
 
     init {
-        checkOfflineProgress()
-        startGameLoop()
+        viewModelScope.launch {
+            val restored = repository.loadGameState()
+            _state.value = restored
+            checkOfflineProgress()
+            startGameLoop()
+        }
     }
 
     private fun checkOfflineProgress() {
@@ -51,7 +57,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             _offlineReport.value = OfflineReport(elapsed, business, rent, total)
             logTransaction(TransactionType.OFFLINE, "Offline business and property simulation", total)
         }
-        repository.saveGameState(_state.value)
+        viewModelScope.launch { repository.saveGameState(_state.value) }
     }
     fun dismissOfflineReport() {
         _offlineReport.value = null
@@ -87,7 +93,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
             val advanced = LocalSimulationEngine.advance(current, now, offline = false)
             advanced.copy(achievements = evaluateAchievements(advanced))
         }
-        if (tickCounter % 5L == 0L) repository.saveGameState(_state.value)
+        if (tickCounter % 5L == 0L) viewModelScope.launch { repository.saveGameState(_state.value) }
         if (tickCounter % 30L == 0L) _newsTicker.value = simulatedHeadlines.random()
     }
     // --- Tap / Clicker Action ---
@@ -665,6 +671,9 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     fun resetGame() {
-        _state.value = repository.resetGame()
+        viewModelScope.launch {
+            val fresh = repository.resetGame()
+            _state.value = fresh
+        }
     }
 }
