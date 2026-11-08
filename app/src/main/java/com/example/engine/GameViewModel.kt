@@ -603,6 +603,7 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
 
     fun recordCasinoResult(chipsWon: Long, chipsBet: Long) {
         _state.update { current ->
+            if (chipsBet <= 0L || chipsBet > current.casinoChips) return@update current
             val netChips = chipsWon - chipsBet
             val newChips = (current.casinoChips + netChips).coerceAtLeast(0)
             val stats = current.casinoStats
@@ -610,13 +611,24 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
                 totalWonChips = if (netChips > 0) stats.totalWonChips + netChips else stats.totalWonChips,
                 totalLostChips = if (netChips < 0) stats.totalLostChips + Math.abs(netChips) else stats.totalLostChips,
                 gamesPlayed = stats.gamesPlayed + 1,
-                biggestWinChips = if (chipsWon > stats.biggestWinChips) chipsWon else stats.biggestWinChips,
+                biggestWinChips = if (netChips > stats.biggestWinChips) netChips else stats.biggestWinChips,
                 totalWageredChips = stats.totalWageredChips + chipsBet,
                 currentWinStreak = if (netChips > 0) stats.currentWinStreak + 1 else 0,
                 bestWinStreak = maxOf(stats.bestWinStreak, if (netChips > 0) stats.currentWinStreak + 1 else stats.currentWinStreak),
                 currentLossStreak = if (netChips < 0) stats.currentLossStreak + 1 else 0
             )
-            current.copy(casinoChips = newChips, casinoStats = updatedStats)
+            val now = System.currentTimeMillis()
+            val tx = createTransaction(TransactionType.CASINO, "Casino wager: ${chipsBet} chips • net ${if (netChips >= 0) "+" else ""}$netChips chips", netChips * 100.0)
+            val ledger = LocalLedgerEntry(
+                id = tx.id, timestamp = now, category = "casino_wager", description = tx.description,
+                debit = if (netChips < 0) -netChips * 100.0 else 0.0,
+                credit = if (netChips > 0) netChips * 100.0 else 0.0, balanceAfter = current.cash
+            )
+            current.copy(
+                casinoChips = newChips, casinoStats = updatedStats,
+                transactions = (listOf(tx) + current.transactions).take(200),
+                ledger = (listOf(ledger) + current.ledger).take(500)
+            )
         }
     }
 
