@@ -1,5 +1,7 @@
 package com.example.model
 
+data class LocalFinancialSample(val timestamp: Long, val revenue: Double, val expenses: Double)
+
 data class LocalPlayerProfile(
     val username: String = "GameDev",
     val title: String = "Aspiring Tycoon",
