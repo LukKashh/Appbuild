@@ -99,19 +99,24 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
                 if (!_ready.value) continue
                 commandMutex.withLock {
                     val now = System.currentTimeMillis()
-                    val clickerAdvanced = LocalClickerEngine.regenerate(_state.value, getApplication(), now)
-                    val (businessAdvanced, _) =
-                        ReferenceCompanyEngine.tick(clickerAdvanced, getApplication(), now, offline = false)
-                    val (propertyAdvanced, _) =
-                        ReferencePropertyEngine.tick(businessAdvanced, getApplication(), now, offline = false)
-                    val corporationAdvanced = ReferenceCorporationEngine.tick(propertyAdvanced, getApplication(), now)
-                    val marketAdvanced = ReferenceMarketEngine.tick(corporationAdvanced, getApplication(), now)
-                    val researchAdvanced = ReferenceResearchEngine.completeDue(marketAdvanced, getApplication(), now)
-                    val collectibleAdvanced = ReferenceCollectibleEngine.checkAchievements(researchAdvanced, getApplication(), now)
-                    val (advanced, _) = LocalGameEngine.tick(collectibleAdvanced, now, offline = false)
+                    val shouldSave = ticksSinceSave + 1 >= 5
+                    val advanced = withContext(Dispatchers.Default) {
+                        val clickerAdvanced = LocalClickerEngine.regenerate(_state.value, getApplication(), now)
+                        val (businessAdvanced, _) =
+                            ReferenceCompanyEngine.tick(clickerAdvanced, getApplication(), now, offline = false)
+                        val (propertyAdvanced, _) =
+                            ReferencePropertyEngine.tick(businessAdvanced, getApplication(), now, offline = false)
+                        val corporationAdvanced = ReferenceCorporationEngine.tick(propertyAdvanced, getApplication(), now)
+                        val marketAdvanced = ReferenceMarketEngine.tick(corporationAdvanced, getApplication(), now)
+                        val researchAdvanced = ReferenceResearchEngine.completeDue(marketAdvanced, getApplication(), now)
+                        val checked = if (shouldSave) {
+                            ReferenceCollectibleEngine.checkAchievements(researchAdvanced, getApplication(), now)
+                        } else researchAdvanced
+                        LocalGameEngine.tick(checked, now, offline = false).first
+                    }
                     _state.value = advanced
                     ticksSinceSave++
-                    if (ticksSinceSave >= 5) {
+                    if (shouldSave) {
                         withContext(Dispatchers.IO) { repository.save(advanced) }
                         ticksSinceSave = 0
                     }
@@ -131,12 +136,15 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
                 return@launch
             }
             commandMutex.withLock {
-                when (val result = command(_state.value)) {
+                val result = withContext(Dispatchers.Default) { command(_state.value) }
+                when (result) {
                     is LocalGameResult.Rejected -> _lastError.value = result.reason
                     is LocalGameResult.Success -> {
-                        val checkedState = ReferenceCollectibleEngine.checkAchievements(
-                            result.state, getApplication(), System.currentTimeMillis()
-                        )
+                        val checkedState = withContext(Dispatchers.Default) {
+                            ReferenceCollectibleEngine.checkAchievements(
+                                result.state, getApplication(), System.currentTimeMillis()
+                            )
+                        }
                         runCatching {
                             withContext(Dispatchers.IO) { repository.save(checkedState) }
                         }.onSuccess {
