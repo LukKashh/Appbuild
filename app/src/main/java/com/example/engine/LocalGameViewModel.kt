@@ -49,7 +49,16 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
                 val loaded = repository.load()
                 val now = System.currentTimeMillis()
                 val base = if (loaded.lastSimulationAt <= 0L) loaded.copy(lastSimulationAt = now) else loaded
-                val (advanced, summary) = LocalGameEngine.tick(base, now, offline = true)
+                val (businessAdvanced, businessSummary) =
+                    ReferenceCompanyEngine.tick(base, getApplication(), now, offline = true)
+                val (advanced, generalSummary) =
+                    LocalGameEngine.tick(businessAdvanced, now, offline = true)
+                val summary = LocalOfflineSummary(
+                    elapsedMillis = maxOf(businessSummary.elapsedMillis, generalSummary.elapsedMillis),
+                    lines = businessSummary.lines + generalSummary.lines,
+                    totalNet = businessSummary.totalNet + generalSummary.totalNet,
+                    cappedMillis = maxOf(businessSummary.cappedMillis, generalSummary.cappedMillis)
+                )
                 repository.save(advanced)
                 _state.value = advanced
                 if (summary.elapsedMillis >= 120_000L) _offlineSummary.value = summary
@@ -77,7 +86,9 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
                 if (!_ready.value) continue
                 commandMutex.withLock {
                     val now = System.currentTimeMillis()
-                    val (advanced, _) = LocalGameEngine.tick(_state.value, now, offline = false)
+                    val (businessAdvanced, _) =
+                        ReferenceCompanyEngine.tick(_state.value, getApplication(), now, offline = false)
+                    val (advanced, _) = LocalGameEngine.tick(businessAdvanced, now, offline = false)
                     _state.value = advanced
                     ticksSinceSave++
                     if (ticksSinceSave >= 5) {
@@ -120,6 +131,36 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun collectCompany(companyId: String) =
         execute { LocalGameEngine.collectCompanyWallet(it, companyId, System.currentTimeMillis()) }
+
+    fun buyReferenceCompany(definitionId: String) =
+        execute { ReferenceCompanyEngine.buyCompany(it, getApplication(), definitionId, System.currentTimeMillis()) }
+
+    fun hireReferenceStaff(instanceId: String, role: String, count: Int, packageIndex: Int? = null) =
+        execute { ReferenceCompanyEngine.hire(it, getApplication(), instanceId, role, count, packageIndex, System.currentTimeMillis()) }
+
+    fun fireReferenceStaff(instanceId: String, role: String, count: Int) =
+        execute { ReferenceCompanyEngine.fire(it, getApplication(), instanceId, role, count, System.currentTimeMillis()) }
+
+    fun upgradeReferenceCompany(instanceId: String, upgradeId: String) =
+        execute { ReferenceCompanyEngine.upgrade(it, getApplication(), instanceId, upgradeId, System.currentTimeMillis()) }
+
+    fun upgradeReferenceStaffCapacity(instanceId: String) =
+        execute { ReferenceCompanyEngine.upgradeStaffCapacity(it, getApplication(), instanceId, System.currentTimeMillis()) }
+
+    fun openReferenceBranch(instanceId: String) =
+        execute { ReferenceCompanyEngine.openBranch(it, getApplication(), instanceId, System.currentTimeMillis()) }
+
+    fun injectReferenceCapital(instanceId: String, amount: Double) =
+        execute { ReferenceCompanyEngine.injectCapital(it, getApplication(), instanceId, amount, System.currentTimeMillis()) }
+
+    fun setReferenceCompanySuspended(instanceId: String, suspended: Boolean) =
+        execute { ReferenceCompanyEngine.setSuspended(it, instanceId, suspended, System.currentTimeMillis()) }
+
+    fun collectReferenceCompanyIncome(instanceId: String? = null) =
+        execute { ReferenceCompanyEngine.collect(it, instanceId, System.currentTimeMillis()) }
+
+    fun sellReferenceCompany(instanceId: String, confirmed: Boolean) =
+        execute { ReferenceCompanyEngine.sell(it, getApplication(), instanceId, confirmed, System.currentTimeMillis()) }
 
     fun contributeToCorporation(playerId: String, amount: Double) =
         execute { LocalGameEngine.contributeToCorporation(it, playerId, amount, System.currentTimeMillis()) }
