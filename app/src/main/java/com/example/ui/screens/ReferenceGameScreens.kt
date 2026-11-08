@@ -612,7 +612,7 @@ fun ReferenceBusinessScreen(state: LocalSimulationState, viewModel: LocalGameVie
                             }
                         }
                     }
-                    val packages = definition.optJSONArray("packages")
+                    val packages = definition?.optJSONArray("packages")
                     if (packages != null && packages.length() > 0) {
                         Text("Recruitment packages", color = GoldLight, style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
                         (0 until packages.length()).forEach { packageIndex ->
