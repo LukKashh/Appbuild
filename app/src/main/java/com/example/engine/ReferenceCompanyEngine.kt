@@ -428,11 +428,11 @@ object ReferenceCompanyEngine {
         }
         val updatedProgress = awardExperience(
             state.copy(referenceCompanies = updatedCompanies),
+            context = context,
             xp = max(0.0, totalNet) / 100.0,
             revenue = lifetimeRevenue,
             expenses = lifetimeExpenses,
-            researchPoints = researchPoints,
-            now = now
+            researchPoints = researchPoints
         )
         return updatedProgress to LocalOfflineSummary(elapsed, lines, totalNet, maxCappedMillis)
     }
@@ -577,13 +577,13 @@ object ReferenceCompanyEngine {
 
     private fun awardExperience(
         state: LocalSimulationState,
+        context: Context,
         xp: Double,
         revenue: Double,
         expenses: Double,
-        researchPoints: Double,
-        now: Long
+        researchPoints: Double
     ): LocalSimulationState {
-        val earnedXp = (xp * (1.0 + modifiers(state, contextHolder)[0].xpPct)).coerceAtLeast(0.0)
+        val earnedXp = (xp * (1.0 + modifiers(state, context).first.xpPct)).coerceAtLeast(0.0)
         return state.copy(
             progress = state.progress.copy(
                 xp = state.progress.xp + earnedXp.toLong(),
@@ -593,10 +593,6 @@ object ReferenceCompanyEngine {
             )
         )
     }
-
-    // Context is passed to the public tick and economy methods. The tiny holder is set only
-    // for the duration of this synchronous call; see tickWithContext below.
-    private var contextHolder: Context = throw IllegalStateException("Context not initialized")
 
     private fun record(state: LocalSimulationState, now: Long, category: String, description: String, amount: Double): LocalSimulationState {
         val entry = LocalLedgerEntry("local-${state.nextSequence}", now, category, description, amount, state.cash)
@@ -639,7 +635,7 @@ object ReferenceCompanyEngine {
             var t = state
             t = ((t xor (t ushr 15)) * (t or 1L)) and 0xffffffffL
             t = (t xor (t + (((t xor (t ushr 7)) * (t or 61L)) and 0xffffffffL))) and 0xffffffffL
-            return (t xor (t ushr 14)).toDouble().and(0xffffffffL.toDouble()) / 4294967296.0
+            return ((t xor (t ushr 14)) and 0xffffffffL).toDouble() / 4294967296.0
         }
         var sum = 0.0
         var norm = 0.0
