@@ -56,8 +56,9 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
                 val corporationAdvanced = ReferenceCorporationEngine.tick(propertyAdvanced, getApplication(), now)
                 val marketAdvanced = ReferenceMarketEngine.tick(corporationAdvanced, getApplication(), now)
                 val researchAdvanced = ReferenceResearchEngine.completeDue(marketAdvanced, getApplication(), now)
+                val collectibleAdvanced = ReferenceCollectibleEngine.checkAchievements(researchAdvanced, getApplication(), now)
                 val (advanced, generalSummary) =
-                    LocalGameEngine.tick(researchAdvanced, now, offline = true)
+                    LocalGameEngine.tick(collectibleAdvanced, now, offline = true)
                 val summary = LocalOfflineSummary(
                     elapsedMillis = maxOf(businessSummary.elapsedMillis, propertySummary.elapsedMillis, generalSummary.elapsedMillis),
                     lines = businessSummary.lines + propertySummary.lines + generalSummary.lines,
@@ -99,7 +100,8 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
                     val corporationAdvanced = ReferenceCorporationEngine.tick(propertyAdvanced, getApplication(), now)
                     val marketAdvanced = ReferenceMarketEngine.tick(corporationAdvanced, getApplication(), now)
                     val researchAdvanced = ReferenceResearchEngine.completeDue(marketAdvanced, getApplication(), now)
-                    val (advanced, _) = LocalGameEngine.tick(researchAdvanced, now, offline = false)
+                    val collectibleAdvanced = ReferenceCollectibleEngine.checkAchievements(researchAdvanced, getApplication(), now)
+                    val (advanced, _) = LocalGameEngine.tick(collectibleAdvanced, now, offline = false)
                     _state.value = advanced
                     ticksSinceSave++
                     if (ticksSinceSave >= 5) {
@@ -125,10 +127,13 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
                 when (val result = command(_state.value)) {
                     is LocalGameResult.Rejected -> _lastError.value = result.reason
                     is LocalGameResult.Success -> {
+                        val checkedState = ReferenceCollectibleEngine.checkAchievements(
+                            result.state, getApplication(), System.currentTimeMillis()
+                        )
                         runCatching {
-                            withContext(Dispatchers.IO) { repository.save(result.state) }
+                            withContext(Dispatchers.IO) { repository.save(checkedState) }
                         }.onSuccess {
-                            _state.value = result.state
+                            _state.value = checkedState
                             _lastError.value = null
                             ticksSinceSave = 0
                         }.onFailure {
@@ -193,6 +198,21 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun cancelReferenceMarketOrder(orderId: String) =
         execute { ReferenceMarketEngine.cancelOrder(it, orderId, System.currentTimeMillis()) }
+
+    fun buyReferenceCollectible(itemId: String) =
+        execute { ReferenceCollectibleEngine.buy(it, getApplication(), itemId, System.currentTimeMillis()) }
+
+    fun sellReferenceCollectible(instanceId: String) =
+        execute { ReferenceCollectibleEngine.sell(it, getApplication(), instanceId, System.currentTimeMillis()) }
+
+    fun refreshReferenceEconomy() {
+        execute { gameState ->
+            LocalGameResult.Success(
+                ReferenceCollectibleEngine.checkAchievements(gameState, getApplication(), System.currentTimeMillis()),
+                "Reference economy updated"
+            )
+        }
+    }
 
     fun contributeToCorporation(playerId: String, amount: Double) =
         execute { LocalGameEngine.contributeToCorporation(it, playerId, amount, System.currentTimeMillis()) }
