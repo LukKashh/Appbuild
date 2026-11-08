@@ -176,6 +176,26 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun toggleBusinessSuspension(businessId: String) {
+        _state.update { current ->
+            val business = current.businesses.firstOrNull { it.id == businessId } ?: return@update current
+            if (!business.isOwned) return@update current
+            if (!business.isSuspended) {
+                val updated = current.businesses.map { if (it.id == businessId) it.copy(isSuspended = true) else it }
+                val tx = createTransaction(TransactionType.BUSINESS, "Suspended operations at " + business.name, 0.0)
+                current.copy(businesses = updated, transactions = (listOf(tx) + current.transactions).take(200))
+            } else {
+                val debtClearance = (business.liabilities - business.baseCost * 0.20).coerceAtLeast(0.0)
+                val cost = maxOf(500.0, debtClearance + business.baseCost * 0.05)
+                if (current.cash < cost) return@update current
+                val updated = current.businesses.map {
+                    if (it.id == businessId) it.copy(isSuspended = false, liabilities = (it.liabilities - cost).coerceAtLeast(0.0), reserves = it.reserves + maxOf(0.0, cost - debtClearance)) else it
+                }
+                val tx = createTransaction(TransactionType.BUSINESS, "Reactivated " + business.name + " and funded operating capital", -cost)
+                current.copy(cash = current.cash - cost, businesses = updated, transactions = (listOf(tx) + current.transactions).take(200))
+            }
+        }
+    }
     fun hireEmployee(businessId: String) {
         _state.update { current ->
             val biz = current.businesses.find { it.id == businessId } ?: return@update current
