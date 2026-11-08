@@ -1,41 +1,76 @@
 package com.example.data
 
 import android.content.Context
+import androidx.room.Dao
+import androidx.room.Database
+import androidx.room.Entity
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.PrimaryKey
+import androidx.room.Query
+import androidx.room.Room
+import androidx.room.RoomDatabase
 import com.example.engine.LocalSimulationState
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
+import kotlinx.coroutines.flow.Flow
 
-/**
- * Durable, device-only storage for the expanded local simulation.
- * Uses a dedicated save key so the existing legacy GameState can be migrated safely.
- */
+@Entity(tableName = "local_game_save")
+data class LocalGameSaveEntity(
+    @PrimaryKey val saveId: String = "primary",
+    val stateJson: String,
+    val updatedAt: Long
+)
+
+@Dao
+interface LocalGameSaveDao {
+    @Query("SELECT * FROM local_game_save WHERE saveId = :saveId LIMIT 1")
+    suspend fun find(saveId: String = "primary"): LocalGameSaveEntity?
+
+    @Query("SELECT * FROM local_game_save WHERE saveId = :saveId LIMIT 1")
+    fun observe(saveId: String = "primary"): Flow<LocalGameSaveEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsert(save: LocalGameSaveEntity)
+
+    @Query("DELETE FROM local_game_save WHERE saveId = :saveId")
+    suspend fun delete(saveId: String = "primary")
+}
+
+@Database(entities = [LocalGameSaveEntity::class], version = 1, exportSchema = false)
+abstract class LocalGameDatabase : RoomDatabase() {
+    abstract fun saves(): LocalGameSaveDao
+
+    companion object {
+        @Volatile private var instance: LocalGameDatabase? = null
+        fun get(context: Context): LocalGameDatabase =
+            instance ?: synchronized(this) {
+                instance ?: Room.databaseBuilder(
+                    context.applicationContext,
+                    LocalGameDatabase::class.java,
+                    "capital_fortune_local.db"
+                ).build().also { instance = it }
+            }
+    }
+}
+
+/** Local authoritative save. A state snapshot and its ledger persist as one Room row. */
 class LocalSimulationRepository(context: Context) {
-    private val preferences = context.getSharedPreferences("capital_fortune_local_simulation", Context.MODE_PRIVATE)
+    private val dao = LocalGameDatabase.get(context).saves()
     private val adapter = Moshi.Builder()
         .addLast(KotlinJsonAdapterFactory())
         .build()
         .adapter(LocalSimulationState::class.java)
 
-    @Synchronized
-    fun load(): LocalSimulationState {
-        val json = preferences.getString(KEY_STATE, null) ?: return LocalSimulationState()
+    suspend fun load(): LocalSimulationState {
+        val json = dao.find()?.stateJson ?: return LocalSimulationState()
         return runCatching { adapter.fromJson(json) }.getOrNull() ?: LocalSimulationState()
     }
 
-    @Synchronized
-    fun save(state: LocalSimulationState): Boolean {
-        val json = runCatching { adapter.toJson(state) }.getOrNull() ?: return false
-        // commit() is intentional: a successful game action is not acknowledged until
-        // the local save has reached persistent storage.
-        return preferences.edit().putString(KEY_STATE, json).commit()
+    suspend fun save(state: LocalSimulationState) {
+        dao.upsert(LocalGameSaveEntity(stateJson = adapter.toJson(state), updatedAt = System.currentTimeMillis()))
     }
 
-    @Synchronized
-    fun clear() {
-        preferences.edit().remove(KEY_STATE).commit()
-    }
-
-    private companion object {
-        const val KEY_STATE = "simulation_state_v1"
-    }
+    fun observe(): Flow<LocalGameSaveEntity?> = dao.observe()
+    suspend fun clear() = dao.delete()
 }
