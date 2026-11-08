@@ -30,6 +30,7 @@ data class LocalPlayerProgress(
     val propertiesBought: Int = 0,
     val propertiesSold: Int = 0,
     val maintenance: Int = 0,
+    val corpContributed: Double = 0.0,
     val rentEarned: Double = 0.0
 )
 
