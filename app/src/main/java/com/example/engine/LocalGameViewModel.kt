@@ -48,7 +48,8 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
             withContext(Dispatchers.IO) {
                 val loaded = repository.load()
                 val now = System.currentTimeMillis()
-                val base = if (loaded.lastSimulationAt <= 0L) loaded.copy(lastSimulationAt = now) else loaded
+                val initialized = if (loaded.lastSimulationAt <= 0L) loaded.copy(lastSimulationAt = now) else loaded
+                val base = LocalClickerEngine.regenerate(initialized, getApplication(), now)
                 val (businessAdvanced, businessSummary) =
                     ReferenceCompanyEngine.tick(base, getApplication(), now, offline = true)
                 val (propertyAdvanced, propertySummary) =
@@ -93,8 +94,9 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
                 if (!_ready.value) continue
                 commandMutex.withLock {
                     val now = System.currentTimeMillis()
+                    val clickerAdvanced = LocalClickerEngine.regenerate(_state.value, getApplication(), now)
                     val (businessAdvanced, _) =
-                        ReferenceCompanyEngine.tick(_state.value, getApplication(), now, offline = false)
+                        ReferenceCompanyEngine.tick(clickerAdvanced, getApplication(), now, offline = false)
                     val (propertyAdvanced, _) =
                         ReferencePropertyEngine.tick(businessAdvanced, getApplication(), now, offline = false)
                     val corporationAdvanced = ReferenceCorporationEngine.tick(propertyAdvanced, getApplication(), now)
@@ -147,6 +149,9 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun collectCompany(companyId: String) =
         execute { LocalGameEngine.collectCompanyWallet(it, companyId, System.currentTimeMillis()) }
+
+    fun tapLocalClicker(count: Int = 1) =
+        execute { LocalClickerEngine.tap(it, getApplication(), count, System.currentTimeMillis()) }
 
     fun buyReferenceCompany(definitionId: String) =
         execute { ReferenceCompanyEngine.buyCompany(it, getApplication(), definitionId, System.currentTimeMillis()) }
