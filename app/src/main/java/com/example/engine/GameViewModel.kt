@@ -670,6 +670,13 @@ class GameViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    fun updatePlayerProfile(profile: LocalPlayerProfile) {
+        _state.update { it.copy(profile = profile) }
+    }
+
+    fun updateGamePreferences(preferences: LocalGamePreferences) {
+        _state.update { it.copy(preferences = preferences) }
+    }
     fun resetGame() {
         viewModelScope.launch {
             val fresh = repository.resetGame()
