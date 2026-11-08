@@ -140,6 +140,9 @@ class LocalGameViewModel(application: Application) : AndroidViewModel(applicatio
     fun buyReferenceCompany(definitionId: String) =
         execute { ReferenceCompanyEngine.buyCompany(it, getApplication(), definitionId, System.currentTimeMillis()) }
 
+    fun upgradeBusinessCapacity() =
+        execute { LocalGameEngine.upgradeBusinessCapacity(it, System.currentTimeMillis()) }
+
     fun hireReferenceStaff(instanceId: String, role: String, count: Int, packageIndex: Int? = null) =
         execute { ReferenceCompanyEngine.hire(it, getApplication(), instanceId, role, count, packageIndex, System.currentTimeMillis()) }
 
