@@ -2,6 +2,7 @@ package com.example.engine
 
 import kotlin.math.pow
 import kotlin.math.round
+import kotlin.math.roundToLong
 
 data class ProgressionAward(
     val progress: LocalPlayerProgress,
