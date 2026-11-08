@@ -57,7 +57,7 @@ class LocalSimulationEngineTest {
         val stockTick = ReferenceMarketSimulation.stockTick(now)
         assertEquals(
             ReferenceMarketSimulation.stockPriceAtTick(stock, stockTick),
-            ReferenceMarketEngine.stockPriceAtTick(stock, stockTick),
+            ReferenceMarketSimulation.stockPriceAtTick(stock, stockTick),
             0.0
         )
 
@@ -65,7 +65,7 @@ class LocalSimulationEngineTest {
         val cryptoTick = ReferenceMarketSimulation.cryptoTick(now)
         assertEquals(
             ReferenceMarketSimulation.cryptoPriceAtTick(crypto, cryptoTick),
-            ReferenceMarketEngine.cryptoPriceAtTick(crypto, cryptoTick),
+            ReferenceMarketSimulation.cryptoPriceAtTick(crypto, cryptoTick),
             0.0
         )
     }
