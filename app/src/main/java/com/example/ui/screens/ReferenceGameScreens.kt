@@ -19,6 +19,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlin.math.pow
 import com.example.engine.*
 import com.example.ui.theme.*
 import java.text.NumberFormat
@@ -230,7 +232,6 @@ private fun AllocationRow(label: String, amount: Double, total: Double, accent: 
 
 @Composable
 fun ReferenceTapScreen(state: LocalSimulationState, viewModel: LocalGameViewModel) {
-    val clickerConfig = remember { "tap" }
     val cap = minOf(
         50,
         10 + state.progress.clickCapBonus +
@@ -1009,7 +1010,6 @@ private fun StatsGrid(entries: List<Pair<String, String>>) {
 
 @Composable
 fun ReferenceCorporationScreen(state: LocalSimulationState, viewModel: LocalGameViewModel) {
-    val context = androidx.compose.ui.platform.LocalContext.current
     val corp = state.corporation
     var corpName by remember { mutableStateOf("Capital Syndicate") }
     var corpTag by remember { mutableStateOf("CFS") }
