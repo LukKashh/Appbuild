@@ -504,6 +504,17 @@ object LocalGameEngine {
         }
     }
 
+    fun collectLegacyRent(state: LocalSimulationState, propertyId: String? = null, now: Long): LocalGameResult {
+        val selected = state.properties.filter { propertyId == null || it.id == propertyId }
+        val amount = selected.sumOf { it.accumulatedRent }
+        if (amount <= 0.0) return reject(state, "No legacy property rent available to collect")
+        val updated = state.properties.map { property ->
+            if (propertyId == null || property.id == propertyId) property.copy(accumulatedRent = 0.0) else property
+        }
+        val next = state.copy(cash = state.cash + amount, properties = updated)
+        return success(ledger(next, now, "PROPERTY_RENT", "Collected migrated property rental income", amount), "Rent collected")
+    }
+
     fun maintainProperty(state: LocalSimulationState, propertyId: String, now: Long): LocalGameResult {
         val property = state.properties.firstOrNull { it.id == propertyId } ?: return reject(state, "Property not found")
         val missing = 100 - property.condition
