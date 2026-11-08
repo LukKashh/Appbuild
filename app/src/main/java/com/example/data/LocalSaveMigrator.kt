@@ -121,6 +121,7 @@ object LocalSaveMigrator {
                 lifetimeExpenses = legacy.transactions.filter { it.amount < 0.0 }.sumOf { -it.amount }
             ),
             companies = companies,
+            businessCapacitySlots = max(3, companies.size),
             properties = properties,
             stockHoldings = stocks,
             cryptoHoldings = crypto,
