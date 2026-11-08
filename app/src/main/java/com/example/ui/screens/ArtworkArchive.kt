@@ -140,7 +140,7 @@ private object ArchivedArtworkCatalog {
             if (normalized.length >= 4 && filename == normalized) total += 30
             else if (normalized.length >= 4 && filename.contains(normalized)) total += 12
 
-            normalized.split(Regex("[^a-z0-9]+"))
+            term.lowercase().split(Regex("[^a-z0-9]+"))
                 .filter { it.length >= 3 && it !in ignored }
                 .distinct()
                 .forEach { token ->
