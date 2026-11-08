@@ -201,6 +201,11 @@ fun BusinessCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            ArchiveArtwork(
+                searchTerms = listOf(business.id, business.name, business.industry.title),
+                modifier = Modifier.size(64.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
