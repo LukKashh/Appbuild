@@ -19,6 +19,7 @@ data class LocalPlayerProgress(
     val clickCapBonus: Int = 0,
     val researchPoints: Double = 0.0,
     val lifetimeRevenue: Double = 0.0,
+    val lifetimeCashEarned: Double = 0.0,
     val lifetimeExpenses: Double = 0.0,
     val lifetimeTrades: Long = 0,
     val lifetimeClicks: Long = 0,
@@ -511,7 +512,11 @@ object LocalGameEngine {
         val updated = state.properties.map { property ->
             if (propertyId == null || property.id == propertyId) property.copy(accumulatedRent = 0.0) else property
         }
-        val next = state.copy(cash = state.cash + amount, properties = updated)
+        val next = state.copy(
+            cash = state.cash + amount,
+            properties = updated,
+            progress = state.progress.copy(lifetimeCashEarned = state.progress.lifetimeCashEarned + amount)
+        )
         return success(ledger(next, now, "PROPERTY_RENT", "Collected migrated property rental income", amount), "Rent collected")
     }
 
