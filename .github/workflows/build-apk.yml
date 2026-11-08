@@ -13,6 +13,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: capital-fortune-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-debug-apk:
     runs-on: ubuntu-latest
@@ -50,8 +54,8 @@ jobs:
             -validity 10000 \
             -dname "CN=Android Debug,O=Android,C=US"
 
-      - name: Build debug APK
-        run: gradle --no-daemon :app:assembleDebug
+      - name: Run unit tests and build debug APK
+        run: gradle --no-daemon :app:testDebugUnitTest :app:assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4

@@ -2,39 +2,36 @@ package com.example.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Luxury Tycoon Palette
-val DarkBackground = Color(0xFF090D16)
-val DarkSurface = Color(0xFF111726)
-val DarkSurfaceVariant = Color(0xFF1B2338)
-val DarkCardBorder = Color(0xFF2C3854)
+// Capital Fortune: neon-violet, midnight and premium gold palette.
+val DarkBackground = Color(0xFF080014)
+val DarkSurface = Color(0xFF120522)
+val DarkSurfaceVariant = Color(0xFF1C0B35)
+val DarkCardBorder = Color(0xFF7132A8)
 
-// Precious Metal Accents
-val GoldPrimary = Color(0xFFFFD700)
-val GoldLight = Color(0xFFFFE66D)
-val GoldDark = Color(0xFFC59B27)
-val GoldContainer = Color(0xFF332700)
+val GoldPrimary = Color(0xFFFFC928)
+val GoldLight = Color(0xFFFFE58A)
+val GoldDark = Color(0xFFB87508)
+val GoldContainer = Color(0xFF3A2100)
 
-val EmeraldProfit = Color(0xFF10B981)
-val EmeraldLight = Color(0xFF34D399)
-val EmeraldContainer = Color(0xFF064E3B)
+val EmeraldProfit = Color(0xFF16E58A)
+val EmeraldLight = Color(0xFF5BFFB0)
+val EmeraldContainer = Color(0xFF06452F)
 
-val CrimsonLoss = Color(0xFFEF4444)
-val CrimsonLight = Color(0xFFF87171)
-val CrimsonContainer = Color(0xFF450A0A)
+val CrimsonLoss = Color(0xFFFF4B68)
+val CrimsonLight = Color(0xFFFF8294)
+val CrimsonContainer = Color(0xFF4B1024)
 
-val CyanTech = Color(0xFF06B6D4)
-val CyanContainer = Color(0xFF164E63)
+val CyanTech = Color(0xFF36D9FF)
+val CyanContainer = Color(0xFF073A55)
 
-val PurpleCrypto = Color(0xFFA855F7)
-val PurpleContainer = Color(0xFF3B0764)
+val PurpleCrypto = Color(0xFFCE55FF)
+val PurpleContainer = Color(0xFF4A087A)
+val BlueNavy = Color(0xFF21104A)
+val ChipGold = Color(0xFFFFC928)
 
-val BlueNavy = Color(0xFF1E3A8A)
-val ChipGold = Color(0xFFF59E0B)
-
-// Rarity Colors
-val RarityCommon = Color(0xFF9CA3AF)
-val RarityUncommon = Color(0xFF22C55E)
-val RarityRare = Color(0xFF3B82F6)
-val RarityEpic = Color(0xFFA855F7)
-val RarityLegendary = Color(0xFFF59E0B)
-val RarityMythical = Color(0xFFEC4899)
+val RarityCommon = Color(0xFFB6B6C8)
+val RarityUncommon = Color(0xFF22D982)
+val RarityRare = Color(0xFF4A9BFF)
+val RarityEpic = Color(0xFFB45CFF)
+val RarityLegendary = Color(0xFFFFC247)
+val RarityMythical = Color(0xFFFF5BC8)

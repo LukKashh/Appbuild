@@ -215,6 +215,11 @@ fun PropertyCard(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
+            ArchiveArtwork(
+                searchTerms = listOf(property.id, property.name, property.category.title),
+                modifier = Modifier.size(64.dp)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = property.name,
@@ -422,6 +427,22 @@ fun PropertyDetailDialog(
                             .fillMaxWidth()
                             .padding(vertical = 4.dp)
                     )
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Occupancy", style = MaterialTheme.typography.bodySmall, color = Color.White)
+                        Text((property.occupancyRate * 100).toInt().toString() + "%", color = CyanTech, style = MaterialTheme.typography.bodySmall)
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Demand index", style = MaterialTheme.typography.bodySmall, color = Color.White)
+                        Text(String.format("%.2fx", property.demandMultiplier), color = CyanTech, style = MaterialTheme.typography.bodySmall)
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Operating expense", style = MaterialTheme.typography.bodySmall, color = Color.White)
+                        Text(CurrencyFormatter.format(property.operatingExpensePerSec) + "/s", color = CrimsonLight, style = MaterialTheme.typography.bodySmall)
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text("Maintenance arrears", style = MaterialTheme.typography.bodySmall, color = Color.White)
+                        Text(CurrencyFormatter.format(property.maintenanceDebt), color = CrimsonLight, style = MaterialTheme.typography.bodySmall)
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(12.dp))
@@ -463,16 +484,16 @@ fun PropertyDetailDialog(
                             Text(upg.name, style = MaterialTheme.typography.bodySmall, color = Color.White, fontWeight = FontWeight.SemiBold)
                             Text("+${((upg.rentBoost - 1.0) * 100).toInt()}% Rent Boost", style = MaterialTheme.typography.labelSmall, color = CyanTech)
                         }
-                        if (upg.isPurchased) {
-                            Text("INSTALLED", style = MaterialTheme.typography.labelSmall, color = EmeraldProfit, fontWeight = FontWeight.Bold)
+                        if (upg.level >= upg.maxLevel) {
+                            Text("MAX LEVEL", style = MaterialTheme.typography.labelSmall, color = EmeraldProfit, fontWeight = FontWeight.Bold)
                         } else {
                             Button(
                                 onClick = { onBuyUpgrade(upg.id) },
-                                enabled = playerCash >= upg.cost,
+                                enabled = playerCash >= upg.currentCost,
                                 colors = ButtonDefaults.buttonColors(containerColor = CyanTech, contentColor = Color.Black),
                                 shape = RoundedCornerShape(8.dp)
                             ) {
-                                Text(CurrencyFormatter.format(upg.cost), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                Text("LVL " + upg.level + " → " + (upg.level + 1) + " • " + CurrencyFormatter.format(upg.currentCost), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -487,7 +508,7 @@ fun PropertyDetailDialog(
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = CrimsonLight),
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text("SELL PROPERTY FOR 85% VALUATION (${CurrencyFormatter.format(property.currentValuation * 0.85)})")
+                    Text("SELL PROPERTY • 85% ESTIMATED VALUATION (${CurrencyFormatter.format((property.currentValuation - property.maintenanceDebt) * 0.85)})")
                 }
             }
         }

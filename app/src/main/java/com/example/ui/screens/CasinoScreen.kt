@@ -108,6 +108,26 @@ fun CasinoScreen(
                 }
 
                 Spacer(modifier = Modifier.height(10.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column {
+                        Text("WAGERED", color = Color(0xFFBDA8D2), style = MaterialTheme.typography.labelSmall)
+                        Text(CurrencyFormatter.formatChips(state.casinoStats.totalWageredChips), color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("NET RESULT", color = Color(0xFFBDA8D2), style = MaterialTheme.typography.labelSmall)
+                        val net = state.casinoStats.totalWonChips - state.casinoStats.totalLostChips
+                        Text((if (net >= 0) "+" else "−") + CurrencyFormatter.formatChips(kotlin.math.abs(net)), color = if (net >= 0) EmeraldLight else CrimsonLight, fontWeight = FontWeight.Bold)
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("BEST STREAK", color = Color(0xFFBDA8D2), style = MaterialTheme.typography.labelSmall)
+                        Text(state.casinoStats.bestWinStreak.toString(), color = GoldLight, fontWeight = FontWeight.Bold)
+                    }
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Current win streak: " + state.casinoStats.currentWinStreak, color = EmeraldLight, style = MaterialTheme.typography.labelSmall)
+                    Text("Current loss streak: " + state.casinoStats.currentLossStreak, color = CrimsonLight, style = MaterialTheme.typography.labelSmall)
+                }
+                Divider(color = DarkCardBorder)
 
                 Row(
                     modifier = Modifier.fillMaxWidth(),
