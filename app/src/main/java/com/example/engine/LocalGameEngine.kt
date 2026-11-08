@@ -15,6 +15,8 @@ import kotlin.random.Random
 data class LocalPlayerProgress(
     val xp: Long = 0,
     val level: Int = 1,
+    val levelRewarded: Int = 1,
+    val clickCapBonus: Int = 0,
     val researchPoints: Double = 0.0,
     val lifetimeRevenue: Double = 0.0,
     val lifetimeExpenses: Double = 0.0,
@@ -214,7 +216,7 @@ data class LocalSimulationState(
 )
 
 data class LocalOfflineLine(val label: String, val gross: Double, val expenses: Double, val net: Double, val eligible: Boolean, val note: String = "")
-data class LocalOfflineSummary(val elapsedMillis: Long, val lines: List<LocalOfflineLine>, val totalNet: Double, val cappedMillis: Long)
+data class LocalOfflineSummary(val elapsedMillis: Long, val lines: List<LocalOfflineLine>, val totalNet: Double, val cappedMillis: Long, val researchPoints: Double = 0.0)
 
 sealed class LocalGameResult {
     data class Success(val state: LocalSimulationState, val message: String) : LocalGameResult()
