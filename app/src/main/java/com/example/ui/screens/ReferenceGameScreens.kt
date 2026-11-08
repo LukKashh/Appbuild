@@ -139,8 +139,10 @@ private fun ReferenceSecondaryAction(
 @Composable
 fun ReferenceAssetsScreen(state: LocalSimulationState, viewModel: LocalGameViewModel) {
     val netWorth = remember(state) { viewModel.localNetWorth() }
-    val businessValue = state.referenceCompanies.sumOf { it.price + it.upgradeValue + it.reserves + it.uncollected - it.liabilities }
-    val propertyValue = state.referenceProperties.sumOf { it.price + it.upgradeValue + it.uncollected }
+    val businessValue = state.referenceCompanies.sumOf { it.price + it.upgradeValue + it.reserves + it.uncollected - it.liabilities } +
+        state.companies.sumOf { it.purchasePrice * it.branches + it.reserves + it.uncollected - it.liabilities }
+    val propertyValue = state.referenceProperties.sumOf { it.price + it.upgradeValue + it.uncollected } +
+        state.properties.sumOf { it.marketValue + it.accumulatedRent }
     val stocksValue = state.stockHoldings.entries.sumOf {
         (viewModel.localStockPrice(it.key) ?: 0.0) * it.value.quantity
     }
@@ -188,8 +190,8 @@ fun ReferenceAssetsScreen(state: LocalSimulationState, viewModel: LocalGameViewM
             ReferenceCard {
                 ReferenceSectionTitle("Empire activity")
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    ReferenceMetric("Companies", "${state.referenceCompanies.size}/${state.businessCapacitySlots}")
-                    ReferenceMetric("Properties", state.referenceProperties.size.toString())
+                    ReferenceMetric("Companies", "${state.referenceCompanies.size + state.companies.size}/${state.businessCapacitySlots}")
+                    ReferenceMetric("Properties", (state.referenceProperties.size + state.properties.size).toString())
                     ReferenceMetric("Collectibles", state.collectibles.size.toString())
                     ReferenceMetric("Casino chips", localCompact(state.casino.chips), GoldLight)
                 }
@@ -528,6 +530,30 @@ fun ReferenceBusinessScreen(state: LocalSimulationState, viewModel: LocalGameVie
                 }
             }
         }
+        if (state.companies.isNotEmpty()) {
+            item { ReferenceSectionTitle("Migrated owned companies", "Preserved from your previous APK save. Their original wallets and operating data remain available.") }
+            items(state.companies, key = { it.id }) { company ->
+                ReferenceCard {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(company.name, color = Color.White, fontWeight = FontWeight.Bold)
+                            Text("${company.industry} · Previous save", color = PurpleCrypto, style = MaterialTheme.typography.labelSmall)
+                        }
+                        ReferenceTag("MIGRATED", CyanTech)
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        ReferenceMetric("Net / hour", localCompact(company.netPerHour), if (company.netPerHour >= 0) EmeraldLight else CrimsonLight)
+                        ReferenceMetric("Uncollected", localCompact(company.uncollected))
+                        ReferenceMetric("Liabilities", localCompact(company.liabilities), CrimsonLight)
+                    }
+                    Text("${company.staffCount} staff · ${company.branches} branches · ${company.upgrades.count { it.level > 0 }} purchased upgrades",
+                        color = Color(0xFFAA99BA), style = MaterialTheme.typography.labelSmall)
+                    ReferenceAction("Collect migrated income", enabled = company.uncollected > 0.0) {
+                        viewModel.collectCompany(company.id)
+                    }
+                }
+            }
+        }
         item { ReferenceSectionTitle("Owned companies", "Operating wallets are collected manually; negative operations draw on reserves and can create liabilities.") }
         items(state.referenceCompanies, key = { it.instanceId }) { company ->
             val definition = definitions.firstOrNull { it.optString("id") == company.definitionId }
@@ -672,6 +698,28 @@ fun ReferencePropertyScreen(state: LocalSimulationState, viewModel: LocalGameVie
                 if (firstUpgrade != null) {
                     ReferenceSecondaryAction("Upgrade: ${firstUpgrade.optString("name")}") {
                         viewModel.upgradeReferenceProperty(property.instanceId, firstUpgrade.optString("id"))
+                    }
+                }
+            }
+        }
+        if (state.properties.isNotEmpty()) {
+            item { ReferenceSectionTitle("Migrated properties", "Properties from the previous APK save are retained separately from the expanded reference catalogue.") }
+            items(state.properties, key = { it.id }) { property ->
+                ReferenceCard {
+                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                        Column(Modifier.weight(1f)) {
+                            Text(property.name, color = Color.White, fontWeight = FontWeight.Bold)
+                            Text("${property.category} · Previous save", color = PurpleCrypto, style = MaterialTheme.typography.labelSmall)
+                        }
+                        ReferenceTag("${property.condition}%", if (property.condition < 40) CrimsonLoss else EmeraldLight)
+                    }
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        ReferenceMetric("Valuation", localCompact(property.marketValue))
+                        ReferenceMetric("Rent / hour", localCompact(property.rentPerHour), EmeraldLight)
+                        ReferenceMetric("Uncollected", localCompact(property.accumulatedRent))
+                    }
+                    ReferenceAction("Collect migrated rent", enabled = property.accumulatedRent > 0.0) {
+                        viewModel.collectMigratedRent(property.id)
                     }
                 }
             }
