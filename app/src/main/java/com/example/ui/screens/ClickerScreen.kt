@@ -45,8 +45,8 @@ fun ClickerScreen(
     val haptic = androidx.compose.ui.platform.LocalHapticFeedback.current
     var pressed by remember { mutableStateOf(false) }
     val scale by animateFloatAsState(
-        targetValue = if (pressed) 0.94f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
+        targetValue = if (!state.preferences.reducedMotion && pressed) 0.94f else 1f,
+        animationSpec = if (state.preferences.reducedMotion) snap() else spring(dampingRatio = Spring.DampingRatioMediumBouncy),
         label = "coin_scale"
     )
     val collectibleClickBonus = state.collectibles.filter { it.isOwned && it.bonusKey == "clickPct" }.sumOf { it.bonusValue }
@@ -114,7 +114,7 @@ fun ClickerScreen(
                                 interactionSource = remember { MutableInteractionSource() },
                                 indication = null
                             ) {
-                                haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+                                if (state.preferences.hapticsEnabled) haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
                                 onTap()
                                 scope.launch {
                                     pressed = true
