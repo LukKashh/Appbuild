@@ -8,6 +8,8 @@ import com.example.engine.LocalPlayerProgress
 import com.example.engine.LocalPropertyInstance
 import com.example.engine.LocalSimulationState
 import com.example.engine.LocalCompanyUpgrade
+import com.example.engine.LocalCasinoState
+import com.example.engine.LocalCasinoStats
 import com.example.model.GameState
 import kotlin.math.max
 
@@ -127,6 +129,14 @@ object LocalSaveMigrator {
             lastDividendDay = lastDividendDay,
             completedResearch = completedResearch,
             collectibles = collectibles,
+            casino = LocalCasinoState(
+                chips = legacy.casinoChips.toDouble(),
+                stats = LocalCasinoStats(
+                    won = legacy.casinoStats.totalWonChips.toDouble(),
+                    rounds = legacy.casinoStats.gamesPlayed.toLong(),
+                    biggestWin = legacy.casinoStats.biggestWinChips.toDouble()
+                )
+            ),
             ledger = transactions,
             lastSimulationAt = legacy.lastActiveTimestamp.takeIf { it > 0L } ?: now,
             nextSequence = transactions.size.toLong() + 1L
