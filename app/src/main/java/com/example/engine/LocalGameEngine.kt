@@ -192,6 +192,8 @@ data class LocalLedgerEntry(
     val balanceAfter: Double
 )
 
+data class LocalCapacityUpgrade(val completesAt: Long, val cost: Double)
+
 data class LocalSimulationState(
     val cash: Double = 50.0,
     val reservedCash: Double = 0.0,
@@ -200,6 +202,7 @@ data class LocalSimulationState(
     val referenceCompanies: List<ReferenceOwnedCompany> = emptyList(),
     val businessCapacitySlots: Int = 3,
     val capacityLevel: Int = 0,
+    val capacityUpgrade: LocalCapacityUpgrade? = null,
     val properties: List<LocalPropertyInstance> = emptyList(),
     val referenceProperties: List<ReferenceOwnedProperty> = emptyList(),
     val soldProperties: List<ReferenceSoldProperty> = emptyList(),
@@ -237,6 +240,16 @@ object LocalGameEngine {
     const val STOCK_FEE_RATE = 0.005
     const val CRYPTO_FEE_RATE = 0.0025
     const val DEFAULT_ORDER_LIFETIME_DAYS = 7L
+
+    fun upgradeBusinessCapacity(state: LocalSimulationState, now: Long): LocalGameResult {
+        if (state.capacityUpgrade != null) return reject(state, "A business capacity upgrade is already in progress")
+        val cost = 50_000.0 * 2.2.pow(state.capacityLevel)
+        if (state.cash - state.reservedCash < cost) return reject(state, "Insufficient available funds")
+        val durationHours = 0.5 * 1.5.pow(state.capacityLevel)
+        val upgrade = LocalCapacityUpgrade(now + (durationHours * 3_600_000.0).toLong(), cost)
+        val next = state.copy(cash = state.cash - cost, capacityUpgrade = upgrade)
+        return success(ledger(next, now, "CAPACITY_UPGRADE", "Started business management upgrade", -cost), "Business capacity upgrade started")
+    }
 
     fun buyCompany(state: LocalSimulationState, company: LocalCompanyInstance, now: Long): LocalGameResult {
         if (state.companies.any { it.id == company.id }) return reject(state, "Company already owned")
@@ -321,8 +334,16 @@ object LocalGameEngine {
             lifetimeExpenses = state.progress.lifetimeExpenses + lines.sumOf { it.expenses },
             xp = state.progress.xp
         )
-        val next = state.copy(companies = companies, properties = properties, progress = withLevel(progress),
-            lastSimulationAt = now)
+        val capacityCompleted = state.capacityUpgrade?.let { it.completesAt <= now } == true
+        val next = state.copy(
+            companies = companies,
+            properties = properties,
+            progress = withLevel(progress),
+            businessCapacitySlots = if (capacityCompleted) state.businessCapacitySlots + 1 else state.businessCapacitySlots,
+            capacityLevel = if (capacityCompleted) state.capacityLevel + 1 else state.capacityLevel,
+            capacityUpgrade = if (capacityCompleted) null else state.capacityUpgrade,
+            lastSimulationAt = now
+        )
         return next to LocalOfflineSummary(elapsed, lines, totalNet, elapsed - applied)
     }
 
