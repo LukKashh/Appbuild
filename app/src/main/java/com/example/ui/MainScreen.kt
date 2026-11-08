@@ -236,12 +236,12 @@ private fun PlayerHudBar(
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("GameDev", color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Text(state.profile.username.ifBlank { "Local Player" }, color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1)
                     Surface(color = PurpleContainer, shape = RoundedCornerShape(7.dp)) {
-                        Text("LVL ${state.clickLevel}", color = GoldLight, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp))
+                        Text("LVL ${state.progression.level}", color = GoldLight, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp))
                     }
                 }
-                Text("TAP LEVEL", color = Color(0xFFBDA9D3), style = MaterialTheme.typography.labelSmall)
+                Text("PLAYER LEVEL", color = Color(0xFFBDA9D3), style = MaterialTheme.typography.labelSmall)
             }
             Surface(
                 color = Color(0xFF071B16),
