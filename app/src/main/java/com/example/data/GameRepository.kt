@@ -22,7 +22,7 @@ class GameRepository(context: Context) {
             try {
                 val state = adapter.fromJson(json)
                 if (state != null) {
-                    return state
+                    return expandState(state)
                 }
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -31,9 +31,22 @@ class GameRepository(context: Context) {
         return createFreshGameState()
     }
 
+
+    /** Adds the reference game's full catalogue to existing local saves without resetting ownership. */
+    private fun expandState(state: GameState): GameState = state.copy(
+        businesses = LocalCatalogue.businesses(state.businesses),
+        properties = LocalCatalogue.properties(state.properties),
+        stocks = LocalCatalogue.stocks(state.stocks),
+        cryptos = LocalCatalogue.cryptos(state.cryptos),
+        collectibles = LocalCatalogue.collectibles(state.collectibles),
+        research = LocalCatalogue.research(state.research),
+        profile = if (state.profile.username.isBlank()) state.profile.copy(username = "GameDev") else state.profile,
+        progression = state.progression.copy(level = state.progression.level.coerceAtLeast(1), clickTokens = state.progression.clickTokens.coerceIn(0.0, 150.0))
+    )
+
     fun saveGameState(state: GameState) {
         try {
-            val json = adapter.toJson(state)
+            val json = adapter.toJson(expandState(state))
             prefs.edit().putString(KEY_GAME_STATE, json).apply()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -42,7 +55,7 @@ class GameRepository(context: Context) {
 
     fun resetGame(): GameState {
         prefs.edit().clear().apply()
-        return createFreshGameState()
+        return expandState(createFreshGameState())
     }
 
     private fun createFreshGameState(): GameState {
@@ -53,12 +66,14 @@ class GameRepository(context: Context) {
             clickPower = 1.0,
             clickMultiplier = 1.0,
             clickUpgrades = DefaultData.initialClickUpgrades(),
-            businesses = DefaultData.initialBusinesses(),
-            properties = DefaultData.initialProperties(),
-            stocks = DefaultData.initialStocks(),
-            cryptos = DefaultData.initialCryptos(),
-            collectibles = DefaultData.initialCollectibles(),
-            research = DefaultData.initialResearch(),
+            businesses = LocalCatalogue.businesses(DefaultData.initialBusinesses()),
+            properties = LocalCatalogue.properties(DefaultData.initialProperties()),
+            stocks = LocalCatalogue.stocks(DefaultData.initialStocks()),
+            cryptos = LocalCatalogue.cryptos(DefaultData.initialCryptos()),
+            collectibles = LocalCatalogue.collectibles(DefaultData.initialCollectibles()),
+            research = LocalCatalogue.research(DefaultData.initialResearch()),
+            profile = LocalPlayerProfile(username = "GameDev"),
+            progression = LocalPlayerProgress(),
             casinoStats = CasinoStats(),
             achievements = DefaultData.initialAchievements(),
             transactions = listOf(
