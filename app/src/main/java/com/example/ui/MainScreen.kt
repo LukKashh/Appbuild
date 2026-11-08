@@ -14,16 +14,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.engine.GameViewModel
-import com.example.model.GameState
-import com.example.ui.components.CurrencyFormatter
+import com.example.engine.LocalGameViewModel
+import com.example.engine.LocalOfflineSummary
 import com.example.ui.screens.*
 import com.example.ui.theme.*
 
@@ -46,10 +44,11 @@ private enum class EmpireSection(val label: String, val icon: ImageVector) {
 }
 
 @Composable
-fun MainScreen(viewModel: GameViewModel = viewModel()) {
+fun MainScreen(viewModel: LocalGameViewModel = viewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val offlineReport by viewModel.offlineReport.collectAsStateWithLifecycle()
-    val newsTicker by viewModel.newsTicker.collectAsStateWithLifecycle()
+    val ready by viewModel.ready.collectAsStateWithLifecycle()
+    val offlineSummary by viewModel.offlineSummary.collectAsStateWithLifecycle()
+    val lastError by viewModel.lastError.collectAsStateWithLifecycle()
 
     var selectedTab by remember { mutableStateOf(MainTab.TAP) }
     var empireSection by remember { mutableStateOf(EmpireSection.BUSINESS) }
@@ -62,8 +61,9 @@ fun MainScreen(viewModel: GameViewModel = viewModel()) {
 
     Scaffold(
         topBar = {
-            PlayerHudBar(
+            LocalPlayerHudBar(
                 state = state,
+                ready = ready,
                 onMenuClick = { showMenu = true },
                 menuExpanded = showMenu,
                 onMenuDismiss = { showMenu = false },
@@ -89,11 +89,7 @@ fun MainScreen(viewModel: GameViewModel = viewModel()) {
                             selectedTab = tab
                         },
                         icon = {
-                            Icon(
-                                tab.icon,
-                                contentDescription = tab.label,
-                                modifier = Modifier.size(if (selected) 25.dp else 22.dp)
-                            )
+                            Icon(tab.icon, contentDescription = tab.label, modifier = Modifier.size(if (selected) 25.dp else 22.dp))
                         },
                         label = { Text(tab.label, fontWeight = if (selected) FontWeight.Bold else FontWeight.Medium) },
                         colors = NavigationBarItemDefaults.colors(
@@ -110,6 +106,23 @@ fun MainScreen(viewModel: GameViewModel = viewModel()) {
         containerColor = DarkBackground
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
+            if (!lastError.isNullOrBlank()) {
+                Surface(
+                    color = CrimsonContainer,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 5.dp),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Row(
+                        Modifier.fillMaxWidth().padding(horizontal = 10.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(lastError!!, color = Color.White, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)
+                        IconButton(onClick = viewModel::dismissError, modifier = Modifier.size(28.dp)) {
+                            Icon(Icons.Default.Close, null, tint = Color.White)
+                        }
+                    }
+                }
+            }
             if (utilityScreen == null && selectedTab == MainTab.EMPIRE) {
                 Row(
                     modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 10.dp, vertical = 8.dp),
@@ -125,77 +138,55 @@ fun MainScreen(viewModel: GameViewModel = viewModel()) {
                                 selectedContainerColor = PurpleContainer,
                                 selectedLabelColor = GoldLight,
                                 selectedLeadingIconColor = GoldLight
-                            ),
+                            )
                         )
                     }
                 }
             }
 
             Box(Modifier.weight(1f)) {
-                when {
-                    utilityScreen == "Profile" -> PlayerProfileScreen(state)
-                    utilityScreen == "Settings" -> SettingsOverviewScreen()
-                    utilityScreen == "Achievements" -> AchievementsScreen(state, viewModel::claimAchievement)
-                    utilityScreen == "Statistics" -> StatisticsScreen(state, viewModel::resetGame)
-                    utilityScreen == null -> when (selectedTab) {
-                        MainTab.ASSETS -> AssetsOverviewScreen(state)
-                        MainTab.MARKETS -> MarketScreen(
-                            state = state,
-                            onBuyStock = viewModel::buyStock,
-                            onSellStock = viewModel::sellStock,
-                            onBuyCrypto = viewModel::buyCrypto,
-                            onSellCrypto = viewModel::sellCrypto
-                        )
-                        MainTab.TAP -> ClickerScreen(
-                            state = state,
-                            newsTicker = newsTicker,
-                            onTap = viewModel::onTapClicker,
-                            onBuyUpgrade = viewModel::buyClickUpgrade
-                        )
-                        MainTab.EMPIRE -> when (empireSection) {
-                            EmpireSection.BUSINESS -> BusinessScreen(
-                                state = state,
-                                onBuyBusiness = viewModel::buyBusiness,
-                                onExpandBranch = viewModel::expandBranch,
-                                onHireEmployee = viewModel::hireEmployee,
-                                onFireEmployee = viewModel::fireEmployee,
-                                onBuyUpgrade = viewModel::buyBusinessUpgrade,
-                                onCollectWallet = viewModel::collectBusinessWallet,
-                                onCollectAll = viewModel::collectAllBusinessWallets,
-                                onSellBusiness = viewModel::sellBusiness
-                            )
-                            EmpireSection.REAL_ESTATE -> RealEstateScreen(
-                                state = state,
-                                onBuyProperty = viewModel::buyProperty,
-                                onRenovateProperty = viewModel::renovateProperty,
-                                onRenovateAll = viewModel::renovateAllProperties,
-                                onBuyUpgrade = viewModel::buyPropertyUpgrade,
-                                onCollectRent = viewModel::collectPropertyRent,
-                                onCollectAllRent = viewModel::collectAllPropertyRent,
-                                onSellProperty = viewModel::sellProperty
-                            )
-                            EmpireSection.RESEARCH -> ResearchScreen(state, viewModel::unlockResearch)
-                            EmpireSection.LUXURY -> CollectiblesScreen(state, viewModel::buyCollectible, viewModel::sellCollectible)
-                            EmpireSection.CASINO -> CasinoScreen(state, viewModel::buyChips, viewModel::cashOutChips, viewModel::recordCasinoResult)
-                            EmpireSection.ACHIEVEMENTS -> AchievementsScreen(state, viewModel::claimAchievement)
-                            EmpireSection.STATISTICS -> StatisticsScreen(state, viewModel::resetGame)
+                if (!ready) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            CircularProgressIndicator(color = PurpleCrypto)
+                            Text("Loading local game save…", color = Color(0xFFBBA9CD))
                         }
-                        MainTab.CORP -> CorporationOverviewScreen(state)
                     }
-                    else -> TapSettingsFallback()
+                } else when {
+                    utilityScreen == "Profile" -> ReferenceProfileScreen(state, viewModel)
+                    utilityScreen == "Settings" -> ReferenceSettingsScreen(viewModel)
+                    utilityScreen == "Achievements" -> ReferenceAchievementsScreen(state, viewModel)
+                    utilityScreen == "Statistics" -> ReferenceStatisticsScreen(state, viewModel)
+                    utilityScreen == null -> when (selectedTab) {
+                        MainTab.ASSETS -> ReferenceAssetsScreen(state, viewModel)
+                        MainTab.MARKETS -> ReferenceMarketScreen(state, viewModel)
+                        MainTab.TAP -> ReferenceTapScreen(state, viewModel)
+                        MainTab.EMPIRE -> when (empireSection) {
+                            EmpireSection.BUSINESS -> ReferenceEmpireScreen(state, viewModel, "Business")
+                            EmpireSection.REAL_ESTATE -> ReferenceEmpireScreen(state, viewModel, "Real Estate")
+                            EmpireSection.RESEARCH -> ReferenceEmpireScreen(state, viewModel, "Research")
+                            EmpireSection.LUXURY -> ReferenceEmpireScreen(state, viewModel, "Luxury")
+                            EmpireSection.CASINO -> LocalCasinoMigrationNotice()
+                            EmpireSection.ACHIEVEMENTS -> ReferenceEmpireScreen(state, viewModel, "Awards")
+                            EmpireSection.STATISTICS -> ReferenceEmpireScreen(state, viewModel, "Stats")
+                        }
+                        MainTab.CORP -> ReferenceCorporationScreen(state, viewModel)
+                    }
+                    else -> ReferenceSettingsScreen(viewModel)
                 }
             }
         }
     }
 
-    offlineReport?.let { report ->
-        OfflineProgressDialog(report = report, onDismiss = viewModel::dismissOfflineReport)
+    offlineSummary?.let { summary ->
+        LocalOfflineProgressDialog(summary = summary, onDismiss = viewModel::dismissOfflineSummary)
     }
 }
 
 @Composable
-private fun PlayerHudBar(
-    state: GameState,
+private fun LocalPlayerHudBar(
+    state: com.example.engine.LocalSimulationState,
+    ready: Boolean,
     onMenuClick: () -> Unit,
     menuExpanded: Boolean,
     onMenuDismiss: () -> Unit,
@@ -205,10 +196,10 @@ private fun PlayerHudBar(
         color = Color(0xFF12051F),
         shape = RoundedCornerShape(bottomStart = 22.dp, bottomEnd = 22.dp),
         border = BorderStroke(1.dp, PurpleCrypto.copy(alpha = 0.8f)),
-        modifier = Modifier.fillMaxWidth().statusBarsPadding()
+        modifier = Modifier.fillMaxWidth()
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 10.dp),
+            modifier = Modifier.fillMaxWidth().statusBarsPadding().padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(9.dp)
         ) {
@@ -216,20 +207,26 @@ private fun PlayerHudBar(
                 shape = CircleShape,
                 color = PurpleContainer,
                 border = BorderStroke(2.dp, PurpleCrypto),
-                modifier = Modifier.size(48.dp)
+                modifier = Modifier.size(44.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    Icon(Icons.Default.Person, null, tint = GoldLight, modifier = Modifier.size(30.dp))
+                    Icon(Icons.Default.Person, null, tint = GoldLight, modifier = Modifier.size(28.dp))
                 }
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                    Text("GameDev", color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1)
+                    Text(state.playerName, color = Color.White, fontWeight = FontWeight.Bold, maxLines = 1)
                     Surface(color = PurpleContainer, shape = RoundedCornerShape(7.dp)) {
-                        Text("LVL ${state.clickLevel}", color = GoldLight, fontWeight = FontWeight.ExtraBold, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp))
+                        Text(
+                            "LVL ${state.progress.level}",
+                            color = GoldLight,
+                            fontWeight = FontWeight.ExtraBold,
+                            style = MaterialTheme.typography.labelSmall,
+                            modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp)
+                        )
                     }
                 }
-                Text("TAP LEVEL", color = Color(0xFFBDA9D3), style = MaterialTheme.typography.labelSmall)
+                Text("CLICKER LVL ${state.progress.clickerLevel}", color = Color(0xFFBDA9D3), style = MaterialTheme.typography.labelSmall)
             }
             Surface(
                 color = Color(0xFF071B16),
@@ -237,7 +234,7 @@ private fun PlayerHudBar(
                 border = BorderStroke(1.dp, EmeraldProfit.copy(alpha = 0.8f))
             ) {
                 Text(
-                    CurrencyFormatter.format(state.cash),
+                    if (ready) hudMoney(state.cash) else "…",
                     color = EmeraldLight,
                     fontWeight = FontWeight.ExtraBold,
                     style = MaterialTheme.typography.titleMedium,
@@ -272,9 +269,54 @@ private fun PlayerHudBar(
     }
 }
 
+private fun hudMoney(value: Double): String {
+    val nf = java.text.NumberFormat.getCurrencyInstance(java.util.Locale.US)
+    return if (kotlin.math.abs(value) >= 1_000_000_000.0) "$" + String.format(java.util.Locale.US, "%.2fB", value / 1_000_000_000.0)
+    else if (kotlin.math.abs(value) >= 1_000_000.0) "$" + String.format(java.util.Locale.US, "%.2fM", value / 1_000_000.0)
+    else nf.format(value)
+}
+
 @Composable
-private fun TapSettingsFallback() {
-    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text("Select a section from the menu.", color = Color.White)
+private fun LocalOfflineProgressDialog(summary: LocalOfflineSummary, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = DarkSurface,
+        title = { Text("Offline progress", color = GoldLight, fontWeight = FontWeight.Bold) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(7.dp)) {
+                Text("Your local simulation advanced while the game was closed.", color = Color.White)
+                Text("Elapsed: ${summary.elapsedMillis / 3_600_000L}h ${(summary.elapsedMillis % 3_600_000L) / 60_000L}m", color = Color(0xFFBBA9CD))
+                summary.lines.take(6).forEach { line ->
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(line.label, color = Color.White, modifier = Modifier.weight(1f))
+                        Text(hudMoney(line.net), color = if (line.net >= 0) EmeraldLight else CrimsonLight)
+                    }
+                }
+                Text("Net generated: ${hudMoney(summary.totalNet)}", color = GoldLight, fontWeight = FontWeight.Bold)
+                Text("Research points: ${summary.researchPoints}", color = CyanTech)
+                if (summary.cappedMillis > 0) Text("Some offline systems reached their cap.", color = CrimsonLight, style = MaterialTheme.typography.labelSmall)
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("Continue", color = GoldLight) }
+        }
+    )
+}
+
+@Composable
+private fun LocalCasinoMigrationNotice() {
+    Column(
+        Modifier.fillMaxSize().padding(24.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(Icons.Default.Casino, null, tint = PurpleCrypto, modifier = Modifier.size(52.dp))
+        Spacer(Modifier.height(14.dp))
+        Text("Casino mechanics are the remaining major subsystem to port.", color = Color.White, fontWeight = FontWeight.Bold)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            "The existing casino screens are intentionally not attached to a separate legacy wallet. This keeps the new local economy consistent while the reference casino rules are migrated.",
+            color = Color(0xFFBBA9CD)
+        )
     }
 }
